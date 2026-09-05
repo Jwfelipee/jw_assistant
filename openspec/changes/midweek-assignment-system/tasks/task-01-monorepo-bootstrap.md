@@ -43,8 +43,8 @@ Deixar o monorepo compilável com Next (`apps/web`), Nest (`apps/api`), Prisma p
 
 ### Critérios de aceite
 
-- [ ] `pnpm install` no root funciona
-- [ ] `turbo run build` reconhece os packages (mesmo que vazios)
+- [x] `pnpm install` no root funciona
+- [x] `turbo run build` reconhece os packages (mesmo que vazios)
 
 ### Não fazer
 
@@ -62,8 +62,8 @@ Deixar o monorepo compilável com Next (`apps/web`), Nest (`apps/api`), Prisma p
 
 ### Critérios de aceite
 
-- [ ] `pnpm --filter web dev` sobe Next
-- [ ] `pnpm --filter api dev` sobe Nest e `/health` responde 200
+- [x] `pnpm --filter web dev` sobe Next
+- [x] `pnpm --filter api dev` sobe Nest e `/health` responde 200
 
 ### Não fazer
 
@@ -81,8 +81,8 @@ Deixar o monorepo compilável com Next (`apps/web`), Nest (`apps/api`), Prisma p
 
 ### Critérios de aceite
 
-- [ ] `docker compose up -d` sobe Postgres
-- [ ] `.env.example` documenta variáveis mínimas
+- [x] `docker compose up -d` sobe Postgres
+- [x] `.env.example` documenta variáveis mínimas
 
 ### Não fazer
 
@@ -99,8 +99,8 @@ Deixar o monorepo compilável com Next (`apps/web`), Nest (`apps/api`), Prisma p
 
 ### Critérios de aceite
 
-- [ ] Import de `@jw/shared` funciona em api e web
-- [ ] Typecheck passa nos apps
+- [x] Import de `@jw/shared` funciona em api e web
+- [x] Typecheck passa nos apps
 
 ### Não fazer
 

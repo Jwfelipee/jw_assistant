@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Sex {
+  MALE
+  FEMALE
+}
+
+enum Privilege {
+  ELDER
+  MINISTERIAL_SERVANT
+  REGULAR_PIONEER
+  REGULAR_PIONEER_SISTER
+  BAPTIZED
+  PUBLISHER
+}
+
+enum RolePreference {
+  ANY
+  PRINCIPAL_ONLY
+  ASSISTANT_ONLY
+}
+
+enum AssignmentRole {
+  TITULAR
+  AJUDANTE
+  DIRIGENTE
+  LEITOR
+}
+
+enum PartTopic {
+  OUT_OF_TOPIC
+  TREASURES
+  MINISTRY
+  CHRISTIAN_LIFE
+}
+
+enum SlotMode {
+  ONE
+  TWO
+}
+
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum AbsenceStatus {
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// Singleton row — always use id = 1.
+model CongregationSettings {
+  id             Int      @id @default(1)
+  name           String
+  meetingWeekday Weekday  @default(THURSDAY)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Participant {
+  id                    String         @id @default(cuid())
+  name                  String
+  phone                 String?
+  sex                   Sex
+  privilege             Privilege
+  rolePreference        RolePreference @default(ANY)
+  titularCount          Int            @default(0)
+  ajudanteCount         Int            @default(0)
+  dirigenteCount        Int            @default(0)
+  leitorCount           Int            @default(0)
+  ministryPracticeCount Int            @default(0)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  absences        Absence[]
+  associationsAsA ParticipantAssociation[] @relation("AssociationA")
+  associationsAsB ParticipantAssociation[] @relation("AssociationB")
+  assignmentSlots AssignmentSlot[]
+
+  @@index([name])
+}
+
+model ParticipantAssociation {
+  id        String   @id @default(cuid())
+  aId       String
+  bId       String
+  reason    String
+  createdAt DateTime @default(now())
+
+  a Participant @relation("AssociationA", fields: [aId], references: [id], onDelete: Cascade)
+  b Participant @relation("AssociationB", fields: [bId], references: [id], onDelete: Cascade)
+
+  @@unique([aId, bId])
+  @@index([bId])
+}
+
+model Absence {
+  id             String        @id @default(cuid())
+  participantId  String
+  startsOn       DateTime      @db.Date
+  endsOn         DateTime?     @db.Date
+  justification  String?
+  status         AbsenceStatus @default(ACTIVE)
+  acknowledgedAt DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@index([participantId, status])
+  @@index([endsOn, status])
+}
+
+model PartType {
+  id                       String           @id @default(cuid())
+  topic                    PartTopic
+  code                     String           @unique
+  label                    String
+  allowedSexes             Sex[]
+  slotMode                 SlotMode
+  roles                    AssignmentRole[]
+  privileges               Privilege[]
+  isSystem                 Boolean          @default(false)
+  countsAsMinistryPractice Boolean          @default(false)
+  deletable                Boolean          @default(true)
+  /// Template order hint within topic (lower first).
+  defaultSortOrder         Int              @default(0)
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+
+  weekParts WeekPart[]
+}
+
+model AlertConfig {
+  id                      String    @id @default(cuid())
+  privilege               Privilege @unique
+  repeatMonthAlertEnabled Boolean   @default(false)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+}
+
+model Bimester {
+  id     String  @id @default(cuid())
+  year   Int
+  /// 1 = Jan–Fev … 6 = Nov–Dez
+  index  Int
+  months Month[]
+
+  @@unique([year, index])
+}
+
+model Month {
+  id         String @id @default(cuid())
+  year       Int
+  /// 1–12
+  month      Int
+  bimesterId String
+  bimester   Bimester @relation(fields: [bimesterId], references: [id], onDelete: Cascade)
+  weeks      Week[]
+
+  @@unique([year, month])
+  @@index([bimesterId])
+}
+
+model Week {
+  id            String   @id @default(cuid())
+  monthId       String
+  /// Monday (ISO) of the week.
+  weekStartDate DateTime @db.Date
+  /// Congregation meeting weekday within this week.
+  meetingDate   DateTime @db.Date
+  month         Month    @relation(fields: [monthId], references: [id], onDelete: Cascade)
+  parts         WeekPart[]
+
+  @@unique([monthId, weekStartDate])
+  @@index([meetingDate])
+  @@index([weekStartDate])
+}
+
+model WeekPart {
+  id         String    @id @default(cuid())
+  weekId     String
+  partTypeId String
+  title      String
+  sortOrder  Int
+  topic      PartTopic
+  week       Week      @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  partType   PartType  @relation(fields: [partTypeId], references: [id], onDelete: Restrict)
+  slots      AssignmentSlot[]
+
+  @@index([weekId, sortOrder])
+  @@index([partTypeId])
+}
+
+model AssignmentSlot {
+  id            String         @id @default(cuid())
+  weekPartId    String
+  role          AssignmentRole
+  participantId String?
+  weekPart      WeekPart       @relation(fields: [weekPartId], references: [id], onDelete: Cascade)
+  participant   Participant?   @relation(fields: [participantId], references: [id], onDelete: SetNull)
+
+  @@unique([weekPartId, role])
+  @@index([participantId])
+}

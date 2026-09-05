@@ -35,8 +35,8 @@ PWA instalável + bottom navigation mobile-first (ícones; labels em breakpoints
 
 ### Critérios de aceite
 
-- [ ] Manifest servido
-- [ ] App instalável em Chrome mobile (critério Lighthouse PWA básico)
+- [x] Manifest servido
+- [x] App instalável em Chrome mobile (critério Lighthouse PWA básico)
 
 ### Não fazer
 
@@ -54,8 +54,8 @@ PWA instalável + bottom navigation mobile-first (ícones; labels em breakpoints
 
 ### Critérios de aceite
 
-- [ ] Phone: ícones sem depender de texto
-- [ ] Tablet/desktop: ícone + nome
+- [x] Phone: ícones sem depender de texto
+- [x] Tablet/desktop: ícone + nome
 
 ### Não fazer
 
@@ -72,8 +72,8 @@ PWA instalável + bottom navigation mobile-first (ícones; labels em breakpoints
 
 ### Critérios de aceite
 
-- [ ] Todos os fluxos primários acessíveis no desktop
-- [ ] Nenhum overflow horizontal óbvio nas telas principais
+- [x] Todos os fluxos primários acessíveis no desktop
+- [x] Nenhum overflow horizontal óbvio nas telas principais
 
 ### Não fazer
 

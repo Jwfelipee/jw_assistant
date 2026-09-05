@@ -34,9 +34,9 @@ Telas mobile-first para programar mês/semana, dashboard do próximo mês e hist
 
 ### Critérios de aceite
 
-- [ ] Usuário consegue designar titular e ajudante em parte FSM
-- [ ] Alertas visíveis antes de confirmar
-- [ ] Bloqueios hard mostram erro claro em pt-BR
+- [x] Usuário consegue designar titular e ajudante em parte FSM
+- [x] Alertas visíveis antes de confirmar
+- [x] Bloqueios hard mostram erro claro em pt-BR
 
 ### Não fazer
 
@@ -53,7 +53,7 @@ Telas mobile-first para programar mês/semana, dashboard do próximo mês e hist
 
 ### Critérios de aceite
 
-- [ ] CTA navega para o month ensure+view correto
+- [x] CTA navega para o month ensure+view correto
 
 ### Não fazer
 
@@ -70,8 +70,8 @@ Telas mobile-first para programar mês/semana, dashboard do próximo mês e hist
 
 ### Critérios de aceite
 
-- [ ] Busca por nome filtra resultados
-- [ ] Usável em viewport mobile
+- [x] Busca por nome filtra resultados
+- [x] Usável em viewport mobile
 
 ### Não fazer
 

@@ -38,8 +38,8 @@ Motor de calendário/designações: gerar mês/semanas, templates, assign com re
 
 ### Critérios de aceite
 
-- [ ] Cenário spec: weekStart 2026-09-28 + Thursday meeting → month 2026-09, meetingDate 2026-10-01
-- [ ] Idempotente: chamar ensure duas vezes não duplica semanas
+- [x] Cenário spec: weekStart 2026-09-28 + Thursday meeting → month 2026-09, meetingDate 2026-10-01
+- [x] Idempotente: chamar ensure duas vezes não duplica semanas
 
 ### Não fazer
 
@@ -61,8 +61,8 @@ Ao criar semana, criar WeekParts + slots:
 
 ### Critérios de aceite
 
-- [ ] Semana nova já vem com estrutura S-140
-- [ ] Remover estudo → rejeitado
+- [x] Semana nova já vem com estrutura S-140
+- [x] Remover estudo → rejeitado
 
 ### Não fazer
 
@@ -83,10 +83,10 @@ Ao criar semana, criar WeekParts + slots:
 
 ### Critérios de aceite
 
-- [ ] Sugestão retorna least TITULAR
-- [ ] Segunda designação feminina na semana → 400
-- [ ] Mixed pair sem associação → warning; com associação → sem warning
-- [ ] Publicador com alerta mês → warning
+- [x] Sugestão retorna least TITULAR
+- [x] Segunda designação feminina na semana → 400
+- [x] Mixed pair sem associação → warning; com associação → sem warning
+- [x] Publicador com alerta mês → warning
 
 ### Não fazer
 
@@ -103,8 +103,8 @@ Ao criar semana, criar WeekParts + slots:
 
 ### Critérios de aceite
 
-- [ ] Filtro por nome funciona
-- [ ] next-month aponta para mês futuro sem schedule (ou incompleto, conforme regra documentada)
+- [x] Filtro por nome funciona
+- [x] next-month aponta para mês futuro sem schedule (ou incompleto, conforme regra documentada)
 
 ### Não fazer
 

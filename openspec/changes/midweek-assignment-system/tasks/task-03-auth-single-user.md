@@ -37,8 +37,8 @@ Login/logout do único usuário da congregação, cookie de sessão e proteção
 
 ### Critérios de aceite
 
-- [ ] Login válido retorna 200 + cookie
-- [ ] Login inválido retorna 401
+- [x] Login válido retorna 200 + cookie
+- [x] Login inválido retorna 401
 
 ### Não fazer
 
@@ -54,8 +54,8 @@ Login/logout do único usuário da congregação, cookie de sessão e proteção
 
 ### Critérios de aceite
 
-- [ ] `GET /participants` sem cookie → 401
-- [ ] Com cookie válido → passa do guard (mesmo que 404 se módulo ainda não exista — preferir smoke com `/auth/me`)
+- [x] `GET /participants` sem cookie → 401
+- [x] Com cookie válido → passa do guard (mesmo que 404 se módulo ainda não exista — preferir smoke com `/auth/me`)
 
 ### Não fazer
 
@@ -73,8 +73,8 @@ Login/logout do único usuário da congregação, cookie de sessão e proteção
 
 ### Critérios de aceite
 
-- [ ] Fluxo login → home funciona em browser
-- [ ] Logout remove acesso
+- [x] Fluxo login → home funciona em browser
+- [x] Logout remove acesso
 
 ### Não fazer
 

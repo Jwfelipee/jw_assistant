@@ -36,9 +36,9 @@ Ausências com/sem data fim, justificativa oculta, histórico, alertas de fim e 
 
 ### Critérios de aceite
 
-- [ ] Listagem padrão sem justification
-- [ ] Reveal retorna texto
-- [ ] Open-ended e dated persistem corretamente
+- [x] Listagem padrão sem justification
+- [x] Reveal retorna texto
+- [x] Open-ended e dated persistem corretamente
 
 ### Não fazer
 
@@ -59,7 +59,7 @@ Função `isEligibleForMeetingDate(participantId, meetingDate)`:
 
 ### Critérios de aceite
 
-- [ ] Testes cobrem Nov absence → Dec candidate true; open-ended always false
+- [x] Testes cobrem Nov absence → Dec candidate true; open-ended always false
 
 ### Não fazer
 
@@ -76,8 +76,8 @@ Função `isEligibleForMeetingDate(participantId, meetingDate)`:
 
 ### Critérios de aceite
 
-- [ ] Justificativa oculta até clique
-- [ ] Alerta aparece após endsOn
+- [x] Justificativa oculta até clique
+- [x] Alerta aparece após endsOn
 
 ### Não fazer
 

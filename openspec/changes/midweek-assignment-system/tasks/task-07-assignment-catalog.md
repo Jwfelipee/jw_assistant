@@ -34,9 +34,9 @@ API e UI do catálogo de tipos de parte FSM (e proteções de tipos sistema / NV
 
 ### Critérios de aceite
 
-- [ ] Não deleta PartType sistema → 400/403
-- [ ] Cria FSM com 2 participantes e ambos sexos
-- [ ] Seed defaults listáveis
+- [x] Não deleta PartType sistema → 400/403
+- [x] Cria FSM com 2 participantes e ambos sexos
+- [x] Seed defaults listáveis
 
 ### Não fazer
 
@@ -53,8 +53,8 @@ API e UI do catálogo de tipos de parte FSM (e proteções de tipos sistema / NV
 
 ### Critérios de aceite
 
-- [ ] Usuário cria novo tipo e ele aparece na lista
-- [ ] Tipos sistema não mostram ação de excluir
+- [x] Usuário cria novo tipo e ele aparece na lista
+- [x] Tipos sistema não mostram ação de excluir
 
 ### Não fazer
 

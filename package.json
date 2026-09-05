@@ -1,0 +1,20 @@
+{
+  "name": "jw-assistant",
+  "private": true,
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:migrate": "pnpm --filter @jw/database db:migrate",
+    "db:migrate:dev": "pnpm --filter @jw/database db:migrate:dev",
+    "db:seed": "pnpm --filter @jw/database db:seed",
+    "db:generate": "pnpm --filter @jw/database db:generate",
+    "db:validate": "pnpm --filter @jw/database db:validate"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  }
+}

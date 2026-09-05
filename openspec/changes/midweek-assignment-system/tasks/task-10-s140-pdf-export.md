@@ -35,9 +35,9 @@ Gerar e baixar PDF S-140 de um mês completo, alinhado a `S-140.docx`.
 
 ### Critérios de aceite
 
-- [ ] PDF contém todas as semanas do mês
-- [ ] Pares e estudo renderizam dois nomes
-- [ ] Nome da congregação e meetingDates corretos
+- [x] PDF contém todas as semanas do mês
+- [x] Pares e estudo renderizam dois nomes
+- [x] Nome da congregação e meetingDates corretos
 
 ### Não fazer
 
@@ -55,8 +55,8 @@ Gerar e baixar PDF S-140 de um mês completo, alinhado a `S-140.docx`.
 
 ### Critérios de aceite
 
-- [ ] Download funciona em mobile e desktop browser
-- [ ] Sem auth → 401
+- [x] Download funciona em mobile e desktop browser
+- [x] Sem auth → 401
 
 ### Não fazer
 
