@@ -37,8 +37,8 @@
 
 📄 [Detalhes](./tasks/task-04-week-schedule-ux-integration.md)
 
-- [ ] 4.1 Replace native `<select>` with `ParticipantPicker` and auto-assign on select
-- [ ] 4.2 Update Sugerir to assign immediately and support re-suggest
-- [ ] 4.3 Remove Designar button; keep Limpar and soft-alert confirmation flow
-- [ ] 4.4 Add inline theme editing for existing week parts
-- [ ] 4.5 Smoke test: login → week → search picker → assign → edit theme → suggest again
+- [x] 4.1 Replace native `<select>` with `ParticipantPicker` and auto-assign on select
+- [x] 4.2 Update Sugerir to assign immediately and support re-suggest
+- [x] 4.3 Remove Designar button; keep Limpar and soft-alert confirmation flow
+- [x] 4.4 Add inline theme editing for existing week parts
+- [x] 4.5 Smoke test: login → week → search picker → assign → edit theme → suggest again
