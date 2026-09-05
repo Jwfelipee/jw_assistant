@@ -42,6 +42,7 @@ import {
 import type { AddWeekPartDto } from './dto/add-week-part.dto';
 import type { AssignSlotDto } from './dto/assign-slot.dto';
 import type { HistoryQueryDto } from './dto/history-query.dto';
+import type { UpdateWeekPartDto } from './dto/update-week-part.dto';
 
 type Tx = Prisma.TransactionClient;
 
@@ -297,6 +298,33 @@ export class ScheduleService {
     return { ok: true };
   }
 
+  async updateWeekPartTitle(partId: string, dto: UpdateWeekPartDto) {
+    const part = await prisma.weekPart.findUnique({
+      where: { id: partId },
+      include: { partType: true },
+    });
+    if (!part) {
+      throw new NotFoundException('Parte não encontrada');
+    }
+
+    const title = dto.title.trim().slice(0, 300);
+    if (!title) {
+      throw new BadRequestException('title é obrigatório');
+    }
+
+    const updated = await prisma.weekPart.update({
+      where: { id: partId },
+      data: { title },
+      include: { partType: true },
+    });
+
+    return {
+      id: updated.id,
+      title: updated.title,
+      partTypeLabel: updated.partType.label,
+    };
+  }
+
   async assignSlot(slotId: string, dto: AssignSlotDto) {
     const slot = await this.loadSlotContext(slotId);
     const participant = await prisma.participant.findUnique({
@@ -416,7 +444,11 @@ export class ScheduleService {
     return { ok: true, slot: this.toSlotView(updated) };
   }
 
-  async suggestForPart(partId: string, role: AssignmentRole) {
+  async suggestForPart(
+    partId: string,
+    role: AssignmentRole,
+    excludeParticipantId?: string,
+  ) {
     const part = await prisma.weekPart.findUnique({
       where: { id: partId },
       include: {
@@ -446,7 +478,11 @@ export class ScheduleService {
       },
     } as SlotWithContext);
 
-    const sorted = sortSuggestionCandidates(eligibleRules, role as never);
+    const filtered = excludeParticipantId
+      ? eligibleRules.filter((p) => p.id !== excludeParticipantId)
+      : eligibleRules;
+
+    const sorted = sortSuggestionCandidates(filtered, role as never);
     const suggestion = sorted[0] ?? null;
 
     return {

@@ -6,6 +6,7 @@ import {
   HttpCode,
   Param,
   ParseEnumPipe,
+  Patch,
   Post,
   Put,
   Query,
@@ -14,6 +15,7 @@ import { AssignmentRole } from '@jw/shared';
 import { AddWeekPartDto } from './dto/add-week-part.dto';
 import { AssignSlotDto } from './dto/assign-slot.dto';
 import { HistoryQueryDto } from './dto/history-query.dto';
+import { UpdateWeekPartDto } from './dto/update-week-part.dto';
 import { ScheduleService } from './schedule.service';
 
 @Controller()
@@ -46,6 +48,14 @@ export class ScheduleController {
     return this.scheduleService.removeWeekPart(partId);
   }
 
+  @Patch('schedule/parts/:partId')
+  updatePart(
+    @Param('partId') partId: string,
+    @Body() dto: UpdateWeekPartDto,
+  ) {
+    return this.scheduleService.updateWeekPartTitle(partId, dto);
+  }
+
   @Put('slots/:id/assign')
   assign(@Param('id') id: string, @Body() dto: AssignSlotDto) {
     return this.scheduleService.assignSlot(id, dto);
@@ -61,8 +71,9 @@ export class ScheduleController {
   suggest(
     @Param('id') id: string,
     @Query('role', new ParseEnumPipe(AssignmentRole)) role: AssignmentRole,
+    @Query('excludeParticipantId') excludeParticipantId?: string,
   ) {
-    return this.scheduleService.suggestForPart(id, role);
+    return this.scheduleService.suggestForPart(id, role, excludeParticipantId);
   }
 
   @Get('slots/:id/eligible-participants')

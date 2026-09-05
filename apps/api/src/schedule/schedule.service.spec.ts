@@ -7,7 +7,7 @@ import {
   SlotMode,
 } from '@jw/database';
 import { AbsenceStatus } from '@jw/shared';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { prisma } from '@jw/database';
 import { ScheduleService } from './schedule.service';
 import { hardRejectMessage } from './assign-rules';
@@ -23,6 +23,10 @@ jest.mock('@jw/database', () => {
       },
       participant: {
         findMany: jest.fn(),
+      },
+      weekPart: {
+        findUnique: jest.fn(),
+        update: jest.fn(),
       },
     },
   };
@@ -288,5 +292,190 @@ describe('ScheduleService.getEligibleParticipants', () => {
     ]);
     expect(result.slotId).toBe(slotId);
     expect(result.role).toBe(AssignmentRole.TITULAR);
+  });
+});
+
+describe('ScheduleService.updateWeekPartTitle', () => {
+  const service = new ScheduleService();
+  const partId = 'wp-1';
+
+  const partType = {
+    id: 'pt-fsm',
+    code: 'FSM_INICIANDO',
+    label: 'Leitura da Bíblia',
+    topic: PartTopic.MINISTRY,
+    allowedSexes: [Sex.MALE, Sex.FEMALE],
+    privileges: Object.values(Privilege),
+    roles: [AssignmentRole.TITULAR, AssignmentRole.AJUDANTE],
+    countsAsMinistryPractice: true,
+    slotMode: SlotMode.ONE,
+    isSystem: true,
+    deletable: false,
+    defaultSortOrder: 10,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const existingPart = {
+    id: partId,
+    weekId: 'week-1',
+    partTypeId: partType.id,
+    title: 'Tema antigo',
+    sortOrder: 10,
+    topic: PartTopic.MINISTRY,
+    partType,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('persists trimmed title and returns partial view', async () => {
+    mockedPrisma.weekPart.findUnique.mockResolvedValue(existingPart);
+    mockedPrisma.weekPart.update.mockResolvedValue({
+      ...existingPart,
+      title: 'Discurso sobre fé',
+    });
+
+    const result = await service.updateWeekPartTitle(partId, {
+      title: '  Discurso sobre fé  ',
+    });
+
+    expect(mockedPrisma.weekPart.update).toHaveBeenCalledWith({
+      where: { id: partId },
+      data: { title: 'Discurso sobre fé' },
+      include: { partType: true },
+    });
+    expect(result).toEqual({
+      id: partId,
+      title: 'Discurso sobre fé',
+      partTypeLabel: 'Leitura da Bíblia',
+    });
+  });
+
+  it('throws 404 when part does not exist', async () => {
+    mockedPrisma.weekPart.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.updateWeekPartTitle('missing', { title: 'Novo tema' }),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('throws 400 when title is empty after trim', async () => {
+    mockedPrisma.weekPart.findUnique.mockResolvedValue(existingPart);
+
+    await expect(
+      service.updateWeekPartTitle(partId, { title: '   ' }),
+    ).rejects.toThrow(BadRequestException);
+  });
+});
+
+describe('ScheduleService.suggestForPart', () => {
+  const service = new ScheduleService();
+  const partId = 'wp-1';
+  const slotId = 'slot-1';
+  const weekId = 'week-1';
+  const meetingDate = new Date('2026-03-10');
+
+  const fsmPartType = {
+    id: 'pt-fsm',
+    code: 'FSM_INICIANDO',
+    label: 'FSM',
+    topic: PartTopic.MINISTRY,
+    allowedSexes: [Sex.MALE, Sex.FEMALE],
+    privileges: Object.values(Privilege),
+    roles: [AssignmentRole.TITULAR, AssignmentRole.AJUDANTE],
+    countsAsMinistryPractice: true,
+    slotMode: SlotMode.ONE,
+    isSystem: true,
+    deletable: false,
+    defaultSortOrder: 10,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const elderLow = {
+    id: 'p-low',
+    name: 'Ana',
+    phone: null,
+    sex: Sex.MALE,
+    privilege: Privilege.ELDER,
+    rolePreference: RolePreference.ANY,
+    titularCount: 1,
+    ajudanteCount: 0,
+    dirigenteCount: 0,
+    leitorCount: 0,
+    ministryPracticeCount: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    absences: [],
+  };
+
+  const elderHigh = {
+    ...elderLow,
+    id: 'p-high',
+    name: 'Zeca',
+    titularCount: 5,
+  };
+
+  function mockPart() {
+    mockedPrisma.weekPart.findUnique.mockResolvedValue({
+      id: partId,
+      weekId,
+      partTypeId: fsmPartType.id,
+      title: fsmPartType.label,
+      sortOrder: 10,
+      topic: PartTopic.MINISTRY,
+      partType: fsmPartType,
+      week: {
+        id: weekId,
+        monthId: 'month-1',
+        weekStartDate: new Date('2026-03-09'),
+        meetingDate,
+      },
+      slots: [{ id: slotId, role: AssignmentRole.TITULAR, participantId: null }],
+    });
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedPrisma.assignmentSlot.count.mockResolvedValue(0);
+    mockedPrisma.participant.findMany.mockResolvedValue([elderHigh, elderLow]);
+  });
+
+  it('returns lowest-counter candidate without exclude', async () => {
+    mockPart();
+
+    const result = await service.suggestForPart(partId, AssignmentRole.TITULAR);
+
+    expect(result.suggestion?.id).toBe('p-low');
+    expect(result.candidatesCount).toBe(2);
+  });
+
+  it('returns next candidate when excludeParticipantId is provided', async () => {
+    mockPart();
+
+    const result = await service.suggestForPart(
+      partId,
+      AssignmentRole.TITULAR,
+      'p-low',
+    );
+
+    expect(result.suggestion?.id).toBe('p-high');
+    expect(result.candidatesCount).toBe(1);
+  });
+
+  it('returns null suggestion when only excluded participant was eligible', async () => {
+    mockPart();
+    mockedPrisma.participant.findMany.mockResolvedValue([elderLow]);
+
+    const result = await service.suggestForPart(
+      partId,
+      AssignmentRole.TITULAR,
+      'p-low',
+    );
+
+    expect(result.suggestion).toBeNull();
+    expect(result.candidatesCount).toBe(0);
   });
 });

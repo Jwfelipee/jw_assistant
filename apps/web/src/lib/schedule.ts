@@ -224,8 +224,12 @@ export async function unassignSlot(slotId: string): Promise<{ ok: true; slot: Sl
 export async function suggestForPart(
   partId: string,
   role: AssignmentRole,
+  excludeParticipantId?: string,
 ): Promise<SuggestResult> {
   const qs = new URLSearchParams({ role });
+  if (excludeParticipantId) {
+    qs.set("excludeParticipantId", excludeParticipantId);
+  }
   const res = await fetch(`/api/parts/${partId}/suggest?${qs}`, {
     credentials: "include",
     cache: "no-store",
@@ -259,6 +263,24 @@ export async function removeWeekPart(partId: string): Promise<{ ok: true }> {
   });
   if (!res.ok) throw new Error(await parseError(res));
   return res.json() as Promise<{ ok: true }>;
+}
+
+export async function updatePartTitle(
+  partId: string,
+  title: string,
+): Promise<{ id: string; title: string; partTypeLabel: string }> {
+  const res = await fetch(`/api/schedule/parts/${partId}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json() as Promise<{
+    id: string;
+    title: string;
+    partTypeLabel: string;
+  }>;
 }
 
 export async function fetchAssignmentHistory(
