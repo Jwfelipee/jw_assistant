@@ -13,9 +13,9 @@
 
 📄 [Detalhes](./tasks/task-01-eligible-participants-api.md)
 
-- [ ] 1.1 Extract shared eligibility builder from `suggestForPart` in `schedule.service.ts`
-- [ ] 1.2 Implement `GET /slots/:id/eligible-participants` with eligible and ineligibleVisible lists
-- [ ] 1.3 Add unit tests for visibility rules (hidden vs visible-disabled reason codes)
+- [x] 1.1 Extract shared eligibility builder from `suggestForPart` in `schedule.service.ts`
+- [x] 1.2 Implement `GET /slots/:id/eligible-participants` with eligible and ineligibleVisible lists
+- [x] 1.3 Add unit tests for visibility rules (hidden vs visible-disabled reason codes)
 
 ## 2. Part title and suggest API
 

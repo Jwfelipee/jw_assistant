@@ -65,6 +65,11 @@ export class ScheduleController {
     return this.scheduleService.suggestForPart(id, role);
   }
 
+  @Get('slots/:id/eligible-participants')
+  eligibleParticipants(@Param('id') id: string) {
+    return this.scheduleService.getEligibleParticipants(id);
+  }
+
   @Get('assignments/history')
   history(@Query() query: HistoryQueryDto) {
     return this.scheduleService.history(query);
