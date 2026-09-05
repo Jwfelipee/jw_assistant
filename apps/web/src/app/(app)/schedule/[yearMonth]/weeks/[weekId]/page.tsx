@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { FormEvent, use, useCallback, useEffect, useMemo, useState } from "react";
 import { AssignmentRole, PartTopic } from "@jw/shared";
-import {
-  listParticipants,
-  type ParticipantListItem,
-} from "@/lib/participants";
+import { ParticipantPicker } from "@/components/participant-picker";
 import { listPartTypes, type PartTypeDto } from "@/lib/catalog";
 import {
   ROLE_LABELS,
@@ -19,6 +16,7 @@ import {
   removeWeekPart,
   suggestForPart,
   unassignSlot,
+  updatePartTitle,
   type SoftAlert,
   type WeekPartView,
   type WeekView,
@@ -53,7 +51,6 @@ type PendingConfirm = {
 export default function WeekSchedulePage({ params }: PageProps) {
   const { yearMonth, weekId } = use(params);
   const [week, setWeek] = useState<WeekView | null>(null);
-  const [participants, setParticipants] = useState<ParticipantListItem[]>([]);
   const [fsmTypes, setFsmTypes] = useState<PartTypeDto[]>([]);
   const [nvcTypes, setNvcTypes] = useState<PartTypeDto[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +60,10 @@ export default function WeekSchedulePage({ params }: PageProps) {
     null,
   );
   const [suggestionNote, setSuggestionNote] = useState<string | null>(null);
-  const [slotDrafts, setSlotDrafts] = useState<Record<string, string>>({});
+  const [editingPartId, setEditingPartId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [partTitleError, setPartTitleError] = useState<string | null>(null);
+  const [savingPartId, setSavingPartId] = useState<string | null>(null);
   const [addTopic, setAddTopic] = useState<PartTopic.MINISTRY | PartTopic.CHRISTIAN_LIFE>(
     PartTopic.MINISTRY,
   );
@@ -73,9 +73,8 @@ export default function WeekSchedulePage({ params }: PageProps) {
 
   const load = useCallback(async () => {
     setError(null);
-    const [month, people, fsm, nvc] = await Promise.all([
+    const [month, fsm, nvc] = await Promise.all([
       ensureMonth(yearMonth),
-      listParticipants(),
       listPartTypes(PartTopic.MINISTRY),
       listPartTypes(PartTopic.CHRISTIAN_LIFE),
     ]);
@@ -84,18 +83,8 @@ export default function WeekSchedulePage({ params }: PageProps) {
       throw new Error("Semana não encontrada neste mês.");
     }
     setWeek(found);
-    setParticipants(people);
     setFsmTypes(fsm);
     setNvcTypes(nvc.filter((t) => t.code !== "ESTUDO_BIBLICO"));
-    setSlotDrafts(() => {
-      const next: Record<string, string> = {};
-      for (const part of found.parts) {
-        for (const slot of part.slots) {
-          next[slot.id] = slot.participantId ?? "";
-        }
-      }
-      return next;
-    });
   }, [yearMonth, weekId]);
 
   useEffect(() => {
@@ -146,7 +135,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
     slotId: string,
     participantId: string,
     confirm: boolean,
-  ) {
+  ): Promise<"ok" | "confirm" | "error"> {
     setBusySlotId(slotId);
     setError(null);
     setSuggestionNote(null);
@@ -158,26 +147,19 @@ export default function WeekSchedulePage({ params }: PageProps) {
           participantId,
           alerts: result.alerts,
         });
-        return;
+        return "confirm";
       }
       setPendingConfirm(null);
       await load();
+      return "ok";
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Não foi possível designar.",
       );
+      return "error";
     } finally {
       setBusySlotId(null);
     }
-  }
-
-  async function onAssignClick(slotId: string) {
-    const participantId = slotDrafts[slotId];
-    if (!participantId) {
-      setError("Selecione um participante antes de designar.");
-      return;
-    }
-    await applyAssign(slotId, participantId, false);
   }
 
   async function onConfirmAlerts() {
@@ -194,7 +176,6 @@ export default function WeekSchedulePage({ params }: PageProps) {
     setError(null);
     try {
       await unassignSlot(slotId);
-      setSlotDrafts((prev) => ({ ...prev, [slotId]: "" }));
       await load();
     } catch (err) {
       setError(
@@ -210,24 +191,67 @@ export default function WeekSchedulePage({ params }: PageProps) {
     setError(null);
     setSuggestionNote(null);
     try {
-      const result = await suggestForPart(part.id, role);
+      const currentAssignee = part.slots.find((s) => s.id === slotId)?.participantId;
+      const result = await suggestForPart(
+        part.id,
+        role,
+        currentAssignee ?? undefined,
+      );
       if (!result.suggestion) {
-        setSuggestionNote("Nenhum participante elegível para sugerir.");
+        setSuggestionNote("Nenhum participante elegível encontrado.");
         return;
       }
-      setSlotDrafts((prev) => ({
-        ...prev,
-        [slotId]: result.suggestion!.id,
-      }));
-      setSuggestionNote(
-        `Sugestão: ${result.suggestion.name} (contador ${result.suggestion.counter}).`,
+      const assignResult = await applyAssign(
+        slotId,
+        result.suggestion.id,
+        false,
       );
+      if (assignResult !== "error") {
+        setSuggestionNote(`Sugerido: ${result.suggestion.name}`);
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Não foi possível sugerir.",
       );
     } finally {
       setBusySlotId(null);
+    }
+  }
+
+  function startEditingPart(part: WeekPartView) {
+    setEditingPartId(part.id);
+    setEditTitle(part.title ?? "");
+    setPartTitleError(null);
+  }
+
+  function cancelEditingPart() {
+    setEditingPartId(null);
+    setEditTitle("");
+    setPartTitleError(null);
+  }
+
+  async function savePartTitle(partId: string) {
+    setSavingPartId(partId);
+    setPartTitleError(null);
+    try {
+      const updated = await updatePartTitle(partId, editTitle);
+      setWeek((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          parts: prev.parts.map((p) =>
+            p.id === partId ? { ...p, title: updated.title } : p,
+          ),
+        };
+      });
+      setEditingPartId(null);
+      setEditTitle("");
+    } catch (err) {
+      setPartTitleError(
+        err instanceof Error ? err.message : "Não foi possível salvar o tema.",
+      );
+    } finally {
+      setSavingPartId(null);
     }
   }
 
@@ -361,15 +385,79 @@ export default function WeekSchedulePage({ params }: PageProps) {
             {group.parts.map((part) => (
               <li key={part.id} className="flex flex-col gap-[var(--space-3)]">
                 <div className="flex items-start justify-between gap-[var(--space-3)]">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-[var(--ink)]">
                       {part.partTypeLabel}
                     </p>
-                    {part.title && part.title !== part.partTypeLabel ? (
-                      <p className="mt-[var(--space-1)] text-[var(--text-sm)] text-[var(--muted)]">
-                        Tema: {part.title}
-                      </p>
-                    ) : null}
+                    {editingPartId === part.id ? (
+                      <div className="mt-[var(--space-2)] flex flex-col gap-[var(--space-2)]">
+                        <label className="text-[var(--text-sm)] text-[var(--muted)]">
+                          Tema
+                          <input
+                            className={`${fieldClass} mt-[var(--space-1)]`}
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") cancelEditingPart();
+                            }}
+                            maxLength={300}
+                            autoFocus
+                          />
+                        </label>
+                        {partTitleError ? (
+                          <p
+                            role="alert"
+                            className="text-[var(--text-sm)] text-[var(--danger)]"
+                          >
+                            {partTitleError}
+                          </p>
+                        ) : null}
+                        <div className="flex flex-wrap gap-[var(--space-2)]">
+                          <button
+                            type="button"
+                            className={btnPrimary}
+                            disabled={savingPartId === part.id}
+                            onClick={() => void savePartTitle(part.id)}
+                          >
+                            {savingPartId === part.id ? "Salvando…" : "Salvar"}
+                          </button>
+                          <button
+                            type="button"
+                            className={btnGhost}
+                            disabled={savingPartId === part.id}
+                            onClick={cancelEditingPart}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-[var(--space-1)]">
+                        {part.title && part.title !== part.partTypeLabel ? (
+                          <p className="text-[var(--text-sm)] text-[var(--muted)]">
+                            Tema: {part.title}
+                          </p>
+                        ) : null}
+                        {part.title && part.title !== part.partTypeLabel ? (
+                          <button
+                            type="button"
+                            className="mt-[var(--space-1)] text-[var(--text-sm)] text-[var(--accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+                            aria-label="Editar tema"
+                            onClick={() => startEditingPart(part)}
+                          >
+                            ✎ Editar tema
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="text-[var(--text-sm)] text-[var(--muted)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+                            onClick={() => startEditingPart(part)}
+                          >
+                            Adicionar tema…
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {part.deletable ? (
                     <button
@@ -396,33 +484,20 @@ export default function WeekSchedulePage({ params }: PageProps) {
                       </p>
                       <label className="text-[var(--text-sm)] text-[var(--muted)]">
                         Participante
-                        <select
-                          className={`${fieldClass} mt-[var(--space-1)]`}
-                          value={slotDrafts[slot.id] ?? ""}
-                          onChange={(e) =>
-                            setSlotDrafts((prev) => ({
-                              ...prev,
-                              [slot.id]: e.target.value,
-                            }))
-                          }
-                        >
-                          <option value="">Selecionar…</option>
-                          {participants.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="mt-[var(--space-1)]">
+                          <ParticipantPicker
+                            slotId={slot.id}
+                            value={slot.participantId}
+                            participantName={slot.participantName}
+                            disabled={busySlotId === slot.id}
+                            busy={busySlotId === slot.id}
+                            onSelect={(participantId) =>
+                              void applyAssign(slot.id, participantId, false)
+                            }
+                          />
+                        </div>
                       </label>
                       <div className="flex flex-wrap gap-[var(--space-2)]">
-                        <button
-                          type="button"
-                          className={btnPrimary}
-                          disabled={busySlotId === slot.id}
-                          onClick={() => void onAssignClick(slot.id)}
-                        >
-                          {busySlotId === slot.id ? "Salvando…" : "Designar"}
-                        </button>
                         <button
                           type="button"
                           className={btnGhost}

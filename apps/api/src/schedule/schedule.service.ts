@@ -35,12 +35,14 @@ import {
   isStudyPartType,
   sortSuggestionCandidates,
   validateHardAssignRules,
+  type AssignHardRejectReason,
   type SoftAlert,
   type ParticipantRules,
 } from './assign-rules';
 import type { AddWeekPartDto } from './dto/add-week-part.dto';
 import type { AssignSlotDto } from './dto/assign-slot.dto';
 import type { HistoryQueryDto } from './dto/history-query.dto';
+import type { UpdateWeekPartDto } from './dto/update-week-part.dto';
 
 type Tx = Prisma.TransactionClient;
 
@@ -80,6 +82,31 @@ type MonthView = {
   weeks: WeekView[];
   complete: boolean;
 };
+
+type SlotWithContext = Awaited<
+  ReturnType<ScheduleService['loadSlotContext']>
+>;
+
+type EligibleParticipantView = {
+  id: string;
+  name: string;
+  sex: string;
+  privilege: string;
+  counter: number;
+};
+
+type IneligibleVisibleView = {
+  id: string;
+  name: string;
+  reasonCode: AssignHardRejectReason;
+  reason: string;
+};
+
+const HIDDEN_REJECT_REASONS = new Set<AssignHardRejectReason>([
+  'SEX_NOT_ALLOWED',
+  'PRIVILEGE_NOT_ALLOWED',
+  'ROLE_PREFERENCE',
+]);
 
 @Injectable()
 export class ScheduleService {
@@ -271,6 +298,33 @@ export class ScheduleService {
     return { ok: true };
   }
 
+  async updateWeekPartTitle(partId: string, dto: UpdateWeekPartDto) {
+    const part = await prisma.weekPart.findUnique({
+      where: { id: partId },
+      include: { partType: true },
+    });
+    if (!part) {
+      throw new NotFoundException('Parte não encontrada');
+    }
+
+    const title = dto.title.trim().slice(0, 300);
+    if (!title) {
+      throw new BadRequestException('title é obrigatório');
+    }
+
+    const updated = await prisma.weekPart.update({
+      where: { id: partId },
+      data: { title },
+      include: { partType: true },
+    });
+
+    return {
+      id: updated.id,
+      title: updated.title,
+      partTypeLabel: updated.partType.label,
+    };
+  }
+
   async assignSlot(slotId: string, dto: AssignSlotDto) {
     const slot = await this.loadSlotContext(slotId);
     const participant = await prisma.participant.findUnique({
@@ -390,7 +444,11 @@ export class ScheduleService {
     return { ok: true, slot: this.toSlotView(updated) };
   }
 
-  async suggestForPart(partId: string, role: AssignmentRole) {
+  async suggestForPart(
+    partId: string,
+    role: AssignmentRole,
+    excludeParticipantId?: string,
+  ) {
     const part = await prisma.weekPart.findUnique({
       where: { id: partId },
       include: {
@@ -407,38 +465,24 @@ export class ScheduleService {
       throw new BadRequestException('Papel inválido para esta parte');
     }
 
-    const participants = await prisma.participant.findMany({
-      include: { absences: true },
-    });
+    const { eligibleRules } = await this.buildParticipantEligibilityForSlot({
+      id: part.slots[0]?.id ?? partId,
+      role,
+      participantId: null,
+      participant: null,
+      weekPart: {
+        id: part.id,
+        weekId: part.weekId,
+        partType: part.partType,
+        week: part.week,
+      },
+    } as SlotWithContext);
 
-    const eligible: ParticipantRules[] = [];
-    for (const p of participants) {
-      const existingAssignments = await this.countParticipantAssignmentsInWeek(
-        part.weekId,
-        p.id,
-      );
-      const hard = validateHardAssignRules({
-        partType: {
-          code: part.partType.code,
-          allowedSexes: part.partType.allowedSexes as never,
-          privileges: part.partType.privileges as never,
-          roles: part.partType.roles as never,
-          countsAsMinistryPractice: part.partType.countsAsMinistryPractice,
-        },
-        participant: this.toParticipantRules(p),
-        role: role as never,
-        femaleAssignmentCountInWeek: existingAssignments,
-      });
-      if (hard) {
-        continue;
-      }
-      if (!isEligibleGivenAbsences(p.absences, part.week.meetingDate)) {
-        continue;
-      }
-      eligible.push(this.toParticipantRules(p));
-    }
+    const filtered = excludeParticipantId
+      ? eligibleRules.filter((p) => p.id !== excludeParticipantId)
+      : eligibleRules;
 
-    const sorted = sortSuggestionCandidates(eligible, role as never);
+    const sorted = sortSuggestionCandidates(filtered, role as never);
     const suggestion = sorted[0] ?? null;
 
     return {
@@ -454,6 +498,23 @@ export class ScheduleService {
           }
         : null,
       candidatesCount: sorted.length,
+    };
+  }
+
+  async getEligibleParticipants(slotId: string) {
+    const slot = await this.loadSlotContext(slotId);
+    const { eligible, ineligibleVisible } =
+      await this.buildParticipantEligibilityForSlot(slot);
+
+    const sortedEligible = [...eligible].sort((a, b) =>
+      a.name.localeCompare(b.name, 'pt-BR'),
+    );
+
+    return {
+      slotId: slot.id,
+      role: slot.role,
+      eligible: sortedEligible,
+      ineligibleVisible,
     };
   }
 
@@ -601,6 +662,83 @@ export class ScheduleService {
   }
 
   // ─── private helpers ─────────────────────────────────────────────
+
+  private async buildParticipantEligibilityForSlot(
+    slot: SlotWithContext,
+  ): Promise<{
+    eligible: EligibleParticipantView[];
+    eligibleRules: ParticipantRules[];
+    ineligibleVisible: IneligibleVisibleView[];
+  }> {
+    const partType = slot.weekPart.partType;
+    const role = slot.role;
+    const meetingDate = slot.weekPart.week.meetingDate;
+    const weekId = slot.weekPart.weekId;
+
+    const participants = await prisma.participant.findMany({
+      include: { absences: true },
+    });
+
+    const eligible: EligibleParticipantView[] = [];
+    const eligibleRules: ParticipantRules[] = [];
+    const ineligibleVisible: IneligibleVisibleView[] = [];
+
+    for (const p of participants) {
+      const existingAssignments = await this.countParticipantAssignmentsInWeek(
+        weekId,
+        p.id,
+      );
+      const hard = validateHardAssignRules({
+        partType: {
+          code: partType.code,
+          allowedSexes: partType.allowedSexes as never,
+          privileges: partType.privileges as never,
+          roles: partType.roles as never,
+          countsAsMinistryPractice: partType.countsAsMinistryPractice,
+        },
+        participant: this.toParticipantRules(p),
+        role: role as never,
+        femaleAssignmentCountInWeek: existingAssignments,
+      });
+
+      if (hard) {
+        if (HIDDEN_REJECT_REASONS.has(hard)) {
+          continue;
+        }
+        if (hard === 'FEMALE_WEEK_LIMIT') {
+          ineligibleVisible.push({
+            id: p.id,
+            name: p.name,
+            reasonCode: hard,
+            reason: hardRejectMessage(hard),
+          });
+        }
+        continue;
+      }
+
+      if (!isEligibleGivenAbsences(p.absences, meetingDate)) {
+        ineligibleVisible.push({
+          id: p.id,
+          name: p.name,
+          reasonCode: 'ABSENCE',
+          reason: hardRejectMessage('ABSENCE'),
+        });
+        continue;
+      }
+
+      const rules = this.toParticipantRules(p);
+      eligibleRules.push(rules);
+      eligible.push({
+        id: p.id,
+        name: p.name,
+        sex: p.sex,
+        privilege: p.privilege,
+        counter: rules[counterKeyForRole(role as never)],
+      });
+    }
+
+    return { eligible, eligibleRules, ineligibleVisible };
+  }
 
   private async createWeekWithTemplate(input: {
     monthId: string;

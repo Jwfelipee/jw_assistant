@@ -62,6 +62,28 @@ export type SuggestResult = {
   candidatesCount: number;
 };
 
+export type EligibleParticipant = {
+  id: string;
+  name: string;
+  sex: string;
+  privilege: string;
+  counter: number;
+};
+
+export type IneligibleVisible = {
+  id: string;
+  name: string;
+  reasonCode: string;
+  reason: string;
+};
+
+export type EligibleParticipantsResult = {
+  slotId: string;
+  role: AssignmentRole;
+  eligible: EligibleParticipant[];
+  ineligibleVisible: IneligibleVisible[];
+};
+
 export type NextMonthInfo = {
   yearMonth: string;
   exists: boolean;
@@ -197,6 +219,17 @@ export async function fetchNextMonth(): Promise<NextMonthInfo> {
   return res.json() as Promise<NextMonthInfo>;
 }
 
+export async function listEligibleParticipants(
+  slotId: string,
+): Promise<EligibleParticipantsResult> {
+  const res = await fetch(`/api/slots/${slotId}/eligible-participants`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json() as Promise<EligibleParticipantsResult>;
+}
+
 export async function assignSlot(
   slotId: string,
   participantId: string,
@@ -224,8 +257,12 @@ export async function unassignSlot(slotId: string): Promise<{ ok: true; slot: Sl
 export async function suggestForPart(
   partId: string,
   role: AssignmentRole,
+  excludeParticipantId?: string,
 ): Promise<SuggestResult> {
   const qs = new URLSearchParams({ role });
+  if (excludeParticipantId) {
+    qs.set("excludeParticipantId", excludeParticipantId);
+  }
   const res = await fetch(`/api/parts/${partId}/suggest?${qs}`, {
     credentials: "include",
     cache: "no-store",
@@ -259,6 +296,24 @@ export async function removeWeekPart(partId: string): Promise<{ ok: true }> {
   });
   if (!res.ok) throw new Error(await parseError(res));
   return res.json() as Promise<{ ok: true }>;
+}
+
+export async function updatePartTitle(
+  partId: string,
+  title: string,
+): Promise<{ id: string; title: string; partTypeLabel: string }> {
+  const res = await fetch(`/api/schedule/parts/${partId}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title }),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json() as Promise<{
+    id: string;
+    title: string;
+    partTypeLabel: string;
+  }>;
 }
 
 export async function fetchAssignmentHistory(
