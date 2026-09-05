@@ -21,9 +21,9 @@
 
 📄 [Detalhes](./tasks/task-02-part-title-and-suggest-api.md)
 
-- [ ] 2.1 Implement `PATCH /schedule/parts/:partId` for title update
-- [ ] 2.2 Add optional `excludeParticipantId` query param to `GET /parts/:id/suggest`
-- [ ] 2.3 Add API tests / smoke for patch title and suggest exclusion
+- [x] 2.1 Implement `PATCH /schedule/parts/:partId` for title update
+- [x] 2.2 Add optional `excludeParticipantId` query param to `GET /parts/:id/suggest`
+- [x] 2.3 Add API tests / smoke for patch title and suggest exclusion
 
 ## 3. Participant picker component
 
