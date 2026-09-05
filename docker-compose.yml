@@ -2,7 +2,7 @@ services:
   db:
     image: postgres:16
     ports:
-      - "5432:5432"
+      - "6012:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-jw}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jw}
@@ -38,13 +38,13 @@ services:
       dockerfile: apps/api/Dockerfile
       target: runner
     ports:
-      - "3001:3001"
+      - "6011:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-jw}:${POSTGRES_PASSWORD:-jw}@db:5432/${POSTGRES_DB:-jw_assistant}?schema=public
       JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-string}
-      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:6010}
       # Local compose is HTTP; keep session cookies working without TLS
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
     depends_on:
@@ -73,7 +73,7 @@ services:
         API_ORIGIN: http://api:3001
         JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-string}
     ports:
-      - "3000:3000"
+      - "6010:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -82,7 +82,7 @@ services:
       API_ORIGIN: http://api:3001
       JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-string}
       # Optional public hint (app uses relative /api; rewrite handles proxy)
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000/api}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:6010/api}
     depends_on:
       api:
         condition: service_healthy

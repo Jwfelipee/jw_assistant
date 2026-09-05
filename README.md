@@ -17,13 +17,13 @@ Em background:
 docker compose up --build -d
 ```
 
-### Portas
+### Portas (host → container)
 
 | Serviço | Porta host | URL |
 |---------|------------|-----|
-| Web (Next.js) | 3000 | http://localhost:3000 |
-| API (Nest) | 3001 | http://localhost:3001 |
-| Postgres | 5432 | `localhost:5432` |
+| Web (Next.js) | 6010 | http://localhost:6010 |
+| API (Nest) | 6011 | http://localhost:6011 |
+| Postgres | 6012 | `localhost:6012` |
 
 Login padrão (seed): `admin@example.com` / `changeme` (ajuste via `.env`).
 
@@ -32,8 +32,8 @@ O serviço `migrate` aplica `prisma migrate deploy` + seed uma vez; a API só so
 ### Health
 
 ```bash
-curl http://localhost:3001/health
-curl -I http://localhost:3000
+curl http://localhost:6011/health
+curl -I http://localhost:6010
 ```
 
 Parar:
