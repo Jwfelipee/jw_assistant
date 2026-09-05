@@ -62,6 +62,28 @@ export type SuggestResult = {
   candidatesCount: number;
 };
 
+export type EligibleParticipant = {
+  id: string;
+  name: string;
+  sex: string;
+  privilege: string;
+  counter: number;
+};
+
+export type IneligibleVisible = {
+  id: string;
+  name: string;
+  reasonCode: string;
+  reason: string;
+};
+
+export type EligibleParticipantsResult = {
+  slotId: string;
+  role: AssignmentRole;
+  eligible: EligibleParticipant[];
+  ineligibleVisible: IneligibleVisible[];
+};
+
 export type NextMonthInfo = {
   yearMonth: string;
   exists: boolean;
@@ -195,6 +217,17 @@ export async function fetchNextMonth(): Promise<NextMonthInfo> {
   });
   if (!res.ok) throw new Error(await parseError(res));
   return res.json() as Promise<NextMonthInfo>;
+}
+
+export async function listEligibleParticipants(
+  slotId: string,
+): Promise<EligibleParticipantsResult> {
+  const res = await fetch(`/api/slots/${slotId}/eligible-participants`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json() as Promise<EligibleParticipantsResult>;
 }
 
 export async function assignSlot(

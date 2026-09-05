@@ -29,9 +29,9 @@
 
 📄 [Detalhes](./tasks/task-03-participant-picker-component.md)
 
-- [ ] 3.1 Create `ParticipantPicker` combobox component with search and disabled ineligible section
-- [ ] 3.2 Add `listEligibleParticipants(slotId)` to `apps/web/src/lib/schedule.ts`
-- [ ] 3.3 Ensure mobile-friendly touch targets and keyboard navigation
+- [x] 3.1 Create `ParticipantPicker` combobox component with search and disabled ineligible section
+- [x] 3.2 Add `listEligibleParticipants(slotId)` to `apps/web/src/lib/schedule.ts`
+- [x] 3.3 Ensure mobile-friendly touch targets and keyboard navigation
 
 ## 4. Week schedule UX integration
 
