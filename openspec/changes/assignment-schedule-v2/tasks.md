@@ -33,10 +33,10 @@
 
 📄 [Detalhes](./tasks/task-03-history-sub-tabs.md)
 
-- [ ] 3.1 Create `HistoryTabs` with URL state `?view=assignments|months`
-- [ ] 3.2 Move current history content to "Por designação" sub-tab
-- [ ] 3.3 Implement "Por mês" sub-tab using `GET /schedule/months` (past + current, status badges, links)
-- [ ] 3.4 Smoke test: switch tabs, open month from archive
+- [x] 3.1 Create `HistoryTabs` with URL state `?view=assignments|months`
+- [x] 3.2 Move current history content to "Por designação" sub-tab
+- [x] 3.3 Implement "Por mês" sub-tab using `GET /schedule/months` (past + current, status badges, links)
+- [x] 3.4 Smoke test: switch tabs, open month from archive
 
 ## 4. S-140 PDF fidelity
 
