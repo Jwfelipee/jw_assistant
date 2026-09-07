@@ -16,6 +16,7 @@ import { AddWeekPartDto } from './dto/add-week-part.dto';
 import { AssignSlotDto } from './dto/assign-slot.dto';
 import { HistoryQueryDto } from './dto/history-query.dto';
 import { MonthsQueryDto } from './dto/months-query.dto';
+import { ReorderWeekPartsDto } from './dto/reorder-week-parts.dto';
 import { UpdateWeekPartDto } from './dto/update-week-part.dto';
 import { ScheduleService } from './schedule.service';
 
@@ -57,6 +58,14 @@ export class ScheduleController {
   @HttpCode(200)
   removePart(@Param('partId') partId: string) {
     return this.scheduleService.removeWeekPart(partId);
+  }
+
+  @Patch('schedule/weeks/:weekId/parts/reorder')
+  reorderParts(
+    @Param('weekId') weekId: string,
+    @Body() dto: ReorderWeekPartsDto,
+  ) {
+    return this.scheduleService.reorderWeekParts(weekId, dto);
   }
 
   @Patch('schedule/parts/:partId')

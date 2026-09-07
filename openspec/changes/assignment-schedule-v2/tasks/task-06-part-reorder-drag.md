@@ -58,10 +58,10 @@ Retornar `{ ok: true }` ou week view atualizada.
 
 ### Critérios de aceite
 
-- [ ] Reorder FSM persiste e reflete em GET month
-- [ ] Estudo não pode ser incluído no payload
-- [ ] Tesouros/fora de tópico inalterados
-- [ ] IDs inválidos → 400
+- [x] Reorder FSM persiste e reflete em GET month
+- [x] Estudo não pode ser incluído no payload
+- [x] Tesouros/fora de tópico inalterados
+- [x] IDs inválidos → 400
 
 ### Não fazer
 
@@ -79,7 +79,7 @@ pnpm add @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities --filter web
 
 ### Critérios de aceite
 
-- [ ] Deps instaladas no workspace
+- [x] Deps instaladas no workspace
 
 ---
 
@@ -108,9 +108,9 @@ export async function reorderWeekParts(weekId: string, orderedPartIds: string[])
 
 ### Critérios de aceite
 
-- [ ] Drag funciona desktop e touch
-- [ ] Só partes `deletable` (FSM/NVC extras + defaults deletable) mostram handle — **ou** todas FSM/NVC exceto estudo
-- [ ] Estudo e partes fixas de tesouros sem handle
+- [x] Drag funciona desktop e touch
+- [x] Só partes `deletable` (FSM/NVC extras + defaults deletable) mostram handle — **ou** todas FSM/NVC exceto estudo
+- [x] Estudo e partes fixas de tesouros sem handle
 
 **Decisão:** partes FSM/NVC **deletable** e defaults deletable são arrastáveis; partes system non-deletable em tesouros/fora de tópico não aparecem nas listas sortable (já separadas por topic). Na seção FSM/NVC: todas as partes listadas exceto `ESTUDO_BIBLICO` são draggables.
 
@@ -135,9 +135,9 @@ Smoke:
 
 ### Critérios de aceite
 
-- [ ] API tests passam
-- [ ] Drag smoke ok
-- [ ] PDF mostra ordem atualizada
+- [x] API tests passam
+- [x] Drag smoke ok
+- [x] PDF mostra ordem atualizada
 
 ---
 

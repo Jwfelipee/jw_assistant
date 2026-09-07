@@ -43,6 +43,7 @@ import type { AddWeekPartDto } from './dto/add-week-part.dto';
 import type { AssignSlotDto } from './dto/assign-slot.dto';
 import type { HistoryQueryDto } from './dto/history-query.dto';
 import type { MonthsQueryDto } from './dto/months-query.dto';
+import type { ReorderWeekPartsDto } from './dto/reorder-week-parts.dto';
 import type { UpdateWeekPartDto } from './dto/update-week-part.dto';
 
 type Tx = Prisma.TransactionClient;
@@ -395,6 +396,89 @@ export class ScheduleService {
       }
       await tx.weekPart.delete({ where: { id: partId } });
     });
+
+    return { ok: true };
+  }
+
+  async reorderWeekParts(
+    weekId: string,
+    dto: ReorderWeekPartsDto,
+  ): Promise<{ ok: true }> {
+    const week = await prisma.week.findUnique({
+      where: { id: weekId },
+      include: { parts: { include: { partType: true } } },
+    });
+    if (!week) {
+      throw new NotFoundException('Semana não encontrada');
+    }
+
+    const reorderable = week.parts.filter(
+      (p) =>
+        (p.topic === PartTopic.MINISTRY ||
+          p.topic === PartTopic.CHRISTIAN_LIFE) &&
+        !isStudyPartType(p.partType.code),
+    );
+    const reorderableById = new Map(reorderable.map((p) => [p.id, p]));
+    const payloadIds = dto.orderedPartIds;
+
+    if (payloadIds.length !== reorderable.length) {
+      throw new BadRequestException(
+        'orderedPartIds deve conter exatamente todas as partes FSM e NVC reordenáveis da semana',
+      );
+    }
+
+    if (new Set(payloadIds).size !== payloadIds.length) {
+      throw new BadRequestException('orderedPartIds contém ids duplicados');
+    }
+
+    for (const id of payloadIds) {
+      const part = reorderableById.get(id);
+      if (!part) {
+        throw new BadRequestException(
+          'Cada id deve pertencer à semana e ser FSM ou NVC (exceto estudo)',
+        );
+      }
+    }
+
+    const fsmOrder = payloadIds.filter(
+      (id) => reorderableById.get(id)!.topic === PartTopic.MINISTRY,
+    );
+    const nvcOrder = payloadIds.filter(
+      (id) => reorderableById.get(id)!.topic === PartTopic.CHRISTIAN_LIFE,
+    );
+
+    const expectedFsmCount = reorderable.filter(
+      (p) => p.topic === PartTopic.MINISTRY,
+    ).length;
+    const expectedNvcCount = reorderable.filter(
+      (p) => p.topic === PartTopic.CHRISTIAN_LIFE,
+    ).length;
+
+    if (
+      fsmOrder.length !== expectedFsmCount ||
+      nvcOrder.length !== expectedNvcCount
+    ) {
+      throw new BadRequestException(
+        'Não é permitido mover partes entre seções FSM e NVC',
+      );
+    }
+
+    const updates: Array<{ id: string; sortOrder: number }> = [];
+    fsmOrder.forEach((id, index) => {
+      updates.push({ id, sortOrder: 20 + index });
+    });
+    nvcOrder.forEach((id, index) => {
+      updates.push({ id, sortOrder: 30 + index });
+    });
+
+    await prisma.$transaction(
+      updates.map((u) =>
+        prisma.weekPart.update({
+          where: { id: u.id },
+          data: { sortOrder: u.sortOrder },
+        }),
+      ),
+    );
 
     return { ok: true };
   }

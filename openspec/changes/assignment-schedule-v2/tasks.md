@@ -59,7 +59,7 @@
 
 📄 [Detalhes](./tasks/task-06-part-reorder-drag.md)
 
-- [ ] 6.1 Implement `PATCH /schedule/weeks/:weekId/parts/reorder` with validation and sortOrder recalculation
-- [ ] 6.2 Add `@dnd-kit/core` and `@dnd-kit/sortable` to `apps/web`
-- [ ] 6.3 Create `SortableWeekParts` for FSM and NVC lists with drag handles
-- [ ] 6.4 Add API tests for reorder constraints and smoke test drag on week page
+- [x] 6.1 Implement `PATCH /schedule/weeks/:weekId/parts/reorder` with validation and sortOrder recalculation
+- [x] 6.2 Add `@dnd-kit/core` and `@dnd-kit/sortable` to `apps/web`
+- [x] 6.3 Create `SortableWeekParts` for FSM and NVC lists with drag handles
+- [x] 6.4 Add API tests for reorder constraints and smoke test drag on week page

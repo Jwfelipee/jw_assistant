@@ -5,6 +5,7 @@ import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { AssignmentRole, PartTopic } from "@jw/shared";
 import { AddWeekPartModal } from "@/components/add-week-part-modal";
 import { ParticipantPicker } from "@/components/participant-picker";
+import { SortableWeekParts } from "@/components/sortable-week-parts";
 import { listPartTypes, type PartTypeDto } from "@/lib/catalog";
 import {
   ROLE_LABELS,
@@ -15,6 +16,7 @@ import {
   formatDateBr,
   formatYearMonthLabel,
   removeWeekPart,
+  reorderWeekParts,
   suggestForPart,
   unassignSlot,
   updatePartTitle,
@@ -269,6 +271,186 @@ export default function WeekSchedulePage({ params }: PageProps) {
     }
   }
 
+  function sortedReorderableIds(
+    topic: PartTopic.MINISTRY | PartTopic.CHRISTIAN_LIFE,
+  ) {
+    if (!week) return [];
+    return week.parts
+      .filter(
+        (p) =>
+          p.topic === topic &&
+          (topic === PartTopic.MINISTRY || p.partTypeCode !== "ESTUDO_BIBLICO"),
+      )
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((p) => p.id);
+  }
+
+  async function onReorderTopicParts(
+    topic: PartTopic.MINISTRY | PartTopic.CHRISTIAN_LIFE,
+    orderedTopicIds: string[],
+  ) {
+    if (!week) return;
+    setError(null);
+    const fsmIds =
+      topic === PartTopic.MINISTRY
+        ? orderedTopicIds
+        : sortedReorderableIds(PartTopic.MINISTRY);
+    const nvcIds =
+      topic === PartTopic.CHRISTIAN_LIFE
+        ? orderedTopicIds
+        : sortedReorderableIds(PartTopic.CHRISTIAN_LIFE);
+    try {
+      await reorderWeekParts(week.id, [...fsmIds, ...nvcIds]);
+      await load();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Não foi possível reordenar as partes.",
+      );
+      throw err;
+    }
+  }
+
+  function renderPartBody(part: WeekPartView) {
+    return (
+      <>
+        <div className="flex items-start justify-between gap-[var(--space-3)]">
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-[var(--ink)]">{part.partTypeLabel}</p>
+            {editingPartId === part.id ? (
+              <div className="mt-[var(--space-2)] flex flex-col gap-[var(--space-2)]">
+                <label className="text-[var(--text-sm)] text-[var(--muted)]">
+                  Tema
+                  <input
+                    className={`${fieldClass} mt-[var(--space-1)]`}
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") cancelEditingPart();
+                    }}
+                    maxLength={300}
+                    autoFocus
+                  />
+                </label>
+                {partTitleError ? (
+                  <p role="alert" className="text-[var(--text-sm)] text-[var(--danger)]">
+                    {partTitleError}
+                  </p>
+                ) : null}
+                <div className="flex flex-wrap gap-[var(--space-2)]">
+                  <button
+                    type="button"
+                    className={btnPrimary}
+                    disabled={savingPartId === part.id}
+                    onClick={() => void savePartTitle(part.id)}
+                  >
+                    {savingPartId === part.id ? "Salvando…" : "Salvar"}
+                  </button>
+                  <button
+                    type="button"
+                    className={btnGhost}
+                    disabled={savingPartId === part.id}
+                    onClick={cancelEditingPart}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-[var(--space-1)]">
+                {part.title && part.title !== part.partTypeLabel ? (
+                  <p className="text-[var(--text-sm)] text-[var(--muted)]">
+                    Tema: {part.title}
+                  </p>
+                ) : null}
+                {part.title && part.title !== part.partTypeLabel ? (
+                  <button
+                    type="button"
+                    className="mt-[var(--space-1)] text-[var(--text-sm)] text-[var(--accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+                    aria-label="Editar tema"
+                    onClick={() => startEditingPart(part)}
+                  >
+                    ✎ Editar tema
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-[var(--text-sm)] text-[var(--muted)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+                    onClick={() => startEditingPart(part)}
+                  >
+                    Adicionar tema…
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          {part.deletable ? (
+            <button
+              type="button"
+              className={btnGhost}
+              onClick={() => void onRemovePart(part.id)}
+            >
+              Remover
+            </button>
+          ) : null}
+        </div>
+
+        <ul className="flex flex-col gap-[var(--space-3)] border-l-2 border-[var(--line)] pl-[var(--space-3)]">
+          {part.slots.map((slot) => (
+            <li key={slot.id} className="flex flex-col gap-[var(--space-2)]">
+              <p className="text-[var(--text-sm)] font-medium text-[var(--ink)]">
+                {ROLE_LABELS[slot.role]}
+                {slot.participantName ? ` — ${slot.participantName}` : " — em aberto"}
+              </p>
+              <label className="text-[var(--text-sm)] text-[var(--muted)]">
+                Participante
+                <div className="mt-[var(--space-1)]">
+                  <ParticipantPicker
+                    slotId={slot.id}
+                    value={slot.participantId}
+                    participantName={slot.participantName}
+                    disabled={busySlotId === slot.id}
+                    busy={busySlotId === slot.id}
+                    onSelect={(participantId) =>
+                      void applyAssign(slot.id, participantId, false)
+                    }
+                  />
+                </div>
+              </label>
+              <div className="flex flex-wrap gap-[var(--space-2)]">
+                <button
+                  type="button"
+                  className={btnGhost}
+                  disabled={busySlotId === slot.id}
+                  onClick={() => void onSuggest(part, slot.role, slot.id)}
+                >
+                  Sugerir
+                </button>
+                {slot.participantId ? (
+                  <button
+                    type="button"
+                    className={btnGhost}
+                    disabled={busySlotId === slot.id}
+                    onClick={() => void onUnassign(slot.id)}
+                  >
+                    Limpar
+                  </button>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </>
+    );
+  }
+
+  function renderStaticPart(part: WeekPartView) {
+    return (
+      <li key={part.id} className="flex flex-col gap-[var(--space-3)]">
+        {renderPartBody(part)}
+      </li>
+    );
+  }
+
   if (loading) {
     return (
       <main className="flex min-h-[50dvh] items-center justify-center px-[var(--page-pad)]">
@@ -383,150 +565,38 @@ export default function WeekSchedulePage({ params }: PageProps) {
               </button>
             ) : null}
           </div>
-          <ul className="mt-[var(--space-4)] flex flex-col gap-[var(--space-5)]">
-            {group.parts.map((part) => (
-              <li key={part.id} className="flex flex-col gap-[var(--space-3)]">
-                <div className="flex items-start justify-between gap-[var(--space-3)]">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-[var(--ink)]">
-                      {part.partTypeLabel}
-                    </p>
-                    {editingPartId === part.id ? (
-                      <div className="mt-[var(--space-2)] flex flex-col gap-[var(--space-2)]">
-                        <label className="text-[var(--text-sm)] text-[var(--muted)]">
-                          Tema
-                          <input
-                            className={`${fieldClass} mt-[var(--space-1)]`}
-                            value={editTitle}
-                            onChange={(e) => setEditTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Escape") cancelEditingPart();
-                            }}
-                            maxLength={300}
-                            autoFocus
-                          />
-                        </label>
-                        {partTitleError ? (
-                          <p
-                            role="alert"
-                            className="text-[var(--text-sm)] text-[var(--danger)]"
-                          >
-                            {partTitleError}
-                          </p>
-                        ) : null}
-                        <div className="flex flex-wrap gap-[var(--space-2)]">
-                          <button
-                            type="button"
-                            className={btnPrimary}
-                            disabled={savingPartId === part.id}
-                            onClick={() => void savePartTitle(part.id)}
-                          >
-                            {savingPartId === part.id ? "Salvando…" : "Salvar"}
-                          </button>
-                          <button
-                            type="button"
-                            className={btnGhost}
-                            disabled={savingPartId === part.id}
-                            onClick={cancelEditingPart}
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-[var(--space-1)]">
-                        {part.title && part.title !== part.partTypeLabel ? (
-                          <p className="text-[var(--text-sm)] text-[var(--muted)]">
-                            Tema: {part.title}
-                          </p>
-                        ) : null}
-                        {part.title && part.title !== part.partTypeLabel ? (
-                          <button
-                            type="button"
-                            className="mt-[var(--space-1)] text-[var(--text-sm)] text-[var(--accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
-                            aria-label="Editar tema"
-                            onClick={() => startEditingPart(part)}
-                          >
-                            ✎ Editar tema
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="text-[var(--text-sm)] text-[var(--muted)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
-                            onClick={() => startEditingPart(part)}
-                          >
-                            Adicionar tema…
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {part.deletable ? (
-                    <button
-                      type="button"
-                      className={btnGhost}
-                      onClick={() => void onRemovePart(part.id)}
-                    >
-                      Remover
-                    </button>
-                  ) : null}
-                </div>
-
-                <ul className="flex flex-col gap-[var(--space-3)] border-l-2 border-[var(--line)] pl-[var(--space-3)]">
-                  {part.slots.map((slot) => (
-                    <li
-                      key={slot.id}
-                      className="flex flex-col gap-[var(--space-2)]"
-                    >
-                      <p className="text-[var(--text-sm)] font-medium text-[var(--ink)]">
-                        {ROLE_LABELS[slot.role]}
-                        {slot.participantName
-                          ? ` — ${slot.participantName}`
-                          : " — em aberto"}
-                      </p>
-                      <label className="text-[var(--text-sm)] text-[var(--muted)]">
-                        Participante
-                        <div className="mt-[var(--space-1)]">
-                          <ParticipantPicker
-                            slotId={slot.id}
-                            value={slot.participantId}
-                            participantName={slot.participantName}
-                            disabled={busySlotId === slot.id}
-                            busy={busySlotId === slot.id}
-                            onSelect={(participantId) =>
-                              void applyAssign(slot.id, participantId, false)
-                            }
-                          />
-                        </div>
-                      </label>
-                      <div className="flex flex-wrap gap-[var(--space-2)]">
-                        <button
-                          type="button"
-                          className={btnGhost}
-                          disabled={busySlotId === slot.id}
-                          onClick={() =>
-                            void onSuggest(part, slot.role, slot.id)
-                          }
-                        >
-                          Sugerir
-                        </button>
-                        {slot.participantId ? (
-                          <button
-                            type="button"
-                            className={btnGhost}
-                            disabled={busySlotId === slot.id}
-                            onClick={() => void onUnassign(slot.id)}
-                          >
-                            Limpar
-                          </button>
-                        ) : null}
-                      </div>
-                    </li>
-                  ))}
+          {group.topic === PartTopic.MINISTRY ? (
+            <SortableWeekParts
+              parts={group.parts.sort((a, b) => a.sortOrder - b.sortOrder)}
+              onReorder={(orderedIds) =>
+                onReorderTopicParts(PartTopic.MINISTRY, orderedIds)
+              }
+              renderPart={renderPartBody}
+            />
+          ) : group.topic === PartTopic.CHRISTIAN_LIFE ? (
+            <>
+              <SortableWeekParts
+                parts={group.parts
+                  .filter((p) => p.partTypeCode !== "ESTUDO_BIBLICO")
+                  .sort((a, b) => a.sortOrder - b.sortOrder)}
+                onReorder={(orderedIds) =>
+                  onReorderTopicParts(PartTopic.CHRISTIAN_LIFE, orderedIds)
+                }
+                renderPart={renderPartBody}
+              />
+              {group.parts.some((p) => p.partTypeCode === "ESTUDO_BIBLICO") ? (
+                <ul className="mt-[var(--space-4)] flex flex-col gap-[var(--space-5)]">
+                  {group.parts
+                    .filter((p) => p.partTypeCode === "ESTUDO_BIBLICO")
+                    .map((part) => renderStaticPart(part))}
                 </ul>
-              </li>
-            ))}
-          </ul>
+              ) : null}
+            </>
+          ) : (
+            <ul className="mt-[var(--space-4)] flex flex-col gap-[var(--space-5)]">
+              {group.parts.map((part) => renderStaticPart(part))}
+            </ul>
+          )}
         </section>
       ))}
 

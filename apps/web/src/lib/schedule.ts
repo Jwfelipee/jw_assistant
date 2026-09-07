@@ -358,6 +358,20 @@ export async function updatePartTitle(
   }>;
 }
 
+export async function reorderWeekParts(
+  weekId: string,
+  orderedPartIds: string[],
+): Promise<{ ok: true }> {
+  const res = await fetch(`/api/schedule/weeks/${weekId}/parts/reorder`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderedPartIds }),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json() as Promise<{ ok: true }>;
+}
+
 export async function fetchAssignmentHistory(
   query: HistoryQuery = {},
 ): Promise<HistoryResult> {

@@ -28,10 +28,14 @@ jest.mock('@jw/database', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
+      week: {
+        findUnique: jest.fn(),
+      },
       month: {
         findUnique: jest.fn(),
         findMany: jest.fn(),
       },
+      $transaction: jest.fn(),
     },
   };
 });
@@ -710,5 +714,149 @@ describe('ScheduleService.listScheduleMonths', () => {
       openSlots: 12,
     });
     expect(service.ensureHorizon).toHaveBeenCalledWith(fixedNow);
+  });
+});
+
+describe('ScheduleService.reorderWeekParts', () => {
+  const service = new ScheduleService();
+  const weekId = 'week-1';
+
+  const fsmPartType = {
+    id: 'pt-fsm',
+    code: 'FSM_INICIANDO',
+    label: 'FSM',
+    topic: PartTopic.MINISTRY,
+    allowedSexes: [Sex.MALE, Sex.FEMALE],
+    privileges: Object.values(Privilege),
+    roles: [AssignmentRole.TITULAR, AssignmentRole.AJUDANTE],
+    countsAsMinistryPractice: true,
+    slotMode: SlotMode.ONE,
+    isSystem: true,
+    deletable: false,
+    defaultSortOrder: 20,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const studyPartType = {
+    ...fsmPartType,
+    id: 'pt-study',
+    code: 'ESTUDO_BIBLICO',
+    label: 'Estudo bíblico',
+    topic: PartTopic.CHRISTIAN_LIFE,
+    defaultSortOrder: 90,
+  };
+
+  const treasuresPartType = {
+    ...fsmPartType,
+    id: 'pt-treasures',
+    code: 'TESOUROS',
+    label: 'Tesouros',
+    topic: PartTopic.TREASURES,
+    defaultSortOrder: 10,
+  };
+
+  function makePart(
+    id: string,
+    partType: typeof fsmPartType,
+    sortOrder: number,
+  ) {
+    return {
+      id,
+      weekId,
+      partTypeId: partType.id,
+      title: partType.label,
+      sortOrder,
+      topic: partType.topic,
+      partType,
+    };
+  }
+
+  function mockWeek(parts: ReturnType<typeof makePart>[]) {
+    mockedPrisma.week.findUnique.mockResolvedValue({
+      id: weekId,
+      monthId: 'month-1',
+      weekStartDate: new Date('2026-03-09'),
+      meetingDate: new Date('2026-03-10'),
+      parts,
+    });
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedPrisma.$transaction.mockImplementation(async (ops) => {
+      if (Array.isArray(ops)) {
+        return Promise.all(ops);
+      }
+      return ops(mockedPrisma);
+    });
+    mockedPrisma.weekPart.update.mockImplementation(async (args) => args);
+  });
+
+  it('reorders 3 FSM parts to sortOrder 20, 21, 22', async () => {
+    const p1 = makePart('fsm-1', fsmPartType, 20);
+    const p2 = makePart('fsm-2', fsmPartType, 21);
+    const p3 = makePart('fsm-3', fsmPartType, 22);
+    mockWeek([p1, p2, p3]);
+
+    const result = await service.reorderWeekParts(weekId, {
+      orderedPartIds: ['fsm-3', 'fsm-1', 'fsm-2'],
+    });
+
+    expect(result).toEqual({ ok: true });
+    expect(mockedPrisma.weekPart.update).toHaveBeenCalledTimes(3);
+    expect(mockedPrisma.weekPart.update).toHaveBeenCalledWith({
+      where: { id: 'fsm-3' },
+      data: { sortOrder: 20 },
+    });
+    expect(mockedPrisma.weekPart.update).toHaveBeenCalledWith({
+      where: { id: 'fsm-1' },
+      data: { sortOrder: 21 },
+    });
+    expect(mockedPrisma.weekPart.update).toHaveBeenCalledWith({
+      where: { id: 'fsm-2' },
+      data: { sortOrder: 22 },
+    });
+  });
+
+  it('rejects study id in payload', async () => {
+    const fsm = makePart('fsm-1', fsmPartType, 20);
+    const study = makePart('study-1', studyPartType, 90);
+    mockWeek([fsm, study]);
+
+    await expect(
+      service.reorderWeekParts(weekId, {
+        orderedPartIds: ['fsm-1', 'study-1'],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(mockedPrisma.weekPart.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects foreign week id', async () => {
+    const fsm = makePart('fsm-1', fsmPartType, 20);
+    mockWeek([fsm]);
+
+    await expect(
+      service.reorderWeekParts(weekId, {
+        orderedPartIds: ['fsm-1', 'foreign-part'],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(mockedPrisma.weekPart.update).not.toHaveBeenCalled();
+  });
+
+  it('leaves treasures sortOrder unchanged (not in payload)', async () => {
+    const treasures = makePart('t-1', treasuresPartType, 10);
+    const fsm = makePart('fsm-1', fsmPartType, 20);
+    mockWeek([treasures, fsm]);
+
+    await service.reorderWeekParts(weekId, { orderedPartIds: ['fsm-1'] });
+
+    expect(mockedPrisma.weekPart.update).toHaveBeenCalledTimes(1);
+    expect(mockedPrisma.weekPart.update).toHaveBeenCalledWith({
+      where: { id: 'fsm-1' },
+      data: { sortOrder: 20 },
+    });
   });
 });
