@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, use, useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { AssignmentRole, PartTopic } from "@jw/shared";
+import { AddWeekPartModal } from "@/components/add-week-part-modal";
 import { ParticipantPicker } from "@/components/participant-picker";
+import { SortableWeekParts } from "@/components/sortable-week-parts";
 import { listPartTypes, type PartTypeDto } from "@/lib/catalog";
 import {
   ROLE_LABELS,
@@ -14,6 +16,7 @@ import {
   formatDateBr,
   formatYearMonthLabel,
   removeWeekPart,
+  reorderWeekParts,
   suggestForPart,
   unassignSlot,
   updatePartTitle,
@@ -64,11 +67,9 @@ export default function WeekSchedulePage({ params }: PageProps) {
   const [editTitle, setEditTitle] = useState("");
   const [partTitleError, setPartTitleError] = useState<string | null>(null);
   const [savingPartId, setSavingPartId] = useState<string | null>(null);
-  const [addTopic, setAddTopic] = useState<PartTopic.MINISTRY | PartTopic.CHRISTIAN_LIFE>(
-    PartTopic.MINISTRY,
-  );
-  const [addPartTypeId, setAddPartTypeId] = useState("");
-  const [addTitle, setAddTitle] = useState("");
+  const [addModalTopic, setAddModalTopic] = useState<
+    PartTopic.MINISTRY | PartTopic.CHRISTIAN_LIFE | null
+  >(null);
   const [addPending, setAddPending] = useState(false);
 
   const load = useCallback(async () => {
@@ -108,20 +109,6 @@ export default function WeekSchedulePage({ params }: PageProps) {
       cancelled = true;
     };
   }, [load]);
-
-  const addableTypes = useMemo(() => {
-    return addTopic === PartTopic.MINISTRY ? fsmTypes : nvcTypes;
-  }, [addTopic, fsmTypes, nvcTypes]);
-
-  useEffect(() => {
-    if (addableTypes.length === 0) {
-      setAddPartTypeId("");
-      return;
-    }
-    if (!addableTypes.some((t) => t.id === addPartTypeId)) {
-      setAddPartTypeId(addableTypes[0]!.id);
-    }
-  }, [addableTypes, addPartTypeId]);
 
   const partsByTopic = useMemo(() => {
     if (!week) return [];
@@ -267,15 +254,14 @@ export default function WeekSchedulePage({ params }: PageProps) {
     }
   }
 
-  async function onAddPart(event: FormEvent) {
-    event.preventDefault();
-    if (!week || !addPartTypeId) return;
+  async function onConfirmAddPart(partTypeId: string, title?: string) {
+    if (!week) return;
     setAddPending(true);
     setError(null);
     try {
-      await addWeekPart(week.id, addPartTypeId, addTitle || undefined);
-      setAddTitle("");
+      await addWeekPart(week.id, partTypeId, title);
       await load();
+      setAddModalTopic(null);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Não foi possível adicionar a parte.",
@@ -283,6 +269,186 @@ export default function WeekSchedulePage({ params }: PageProps) {
     } finally {
       setAddPending(false);
     }
+  }
+
+  function sortedReorderableIds(
+    topic: PartTopic.MINISTRY | PartTopic.CHRISTIAN_LIFE,
+  ) {
+    if (!week) return [];
+    return week.parts
+      .filter(
+        (p) =>
+          p.topic === topic &&
+          (topic === PartTopic.MINISTRY || p.partTypeCode !== "ESTUDO_BIBLICO"),
+      )
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((p) => p.id);
+  }
+
+  async function onReorderTopicParts(
+    topic: PartTopic.MINISTRY | PartTopic.CHRISTIAN_LIFE,
+    orderedTopicIds: string[],
+  ) {
+    if (!week) return;
+    setError(null);
+    const fsmIds =
+      topic === PartTopic.MINISTRY
+        ? orderedTopicIds
+        : sortedReorderableIds(PartTopic.MINISTRY);
+    const nvcIds =
+      topic === PartTopic.CHRISTIAN_LIFE
+        ? orderedTopicIds
+        : sortedReorderableIds(PartTopic.CHRISTIAN_LIFE);
+    try {
+      await reorderWeekParts(week.id, [...fsmIds, ...nvcIds]);
+      await load();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Não foi possível reordenar as partes.",
+      );
+      throw err;
+    }
+  }
+
+  function renderPartBody(part: WeekPartView) {
+    return (
+      <>
+        <div className="flex items-start justify-between gap-[var(--space-3)]">
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-[var(--ink)]">{part.partTypeLabel}</p>
+            {editingPartId === part.id ? (
+              <div className="mt-[var(--space-2)] flex flex-col gap-[var(--space-2)]">
+                <label className="text-[var(--text-sm)] text-[var(--muted)]">
+                  Tema
+                  <input
+                    className={`${fieldClass} mt-[var(--space-1)]`}
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") cancelEditingPart();
+                    }}
+                    maxLength={300}
+                    autoFocus
+                  />
+                </label>
+                {partTitleError ? (
+                  <p role="alert" className="text-[var(--text-sm)] text-[var(--danger)]">
+                    {partTitleError}
+                  </p>
+                ) : null}
+                <div className="flex flex-wrap gap-[var(--space-2)]">
+                  <button
+                    type="button"
+                    className={btnPrimary}
+                    disabled={savingPartId === part.id}
+                    onClick={() => void savePartTitle(part.id)}
+                  >
+                    {savingPartId === part.id ? "Salvando…" : "Salvar"}
+                  </button>
+                  <button
+                    type="button"
+                    className={btnGhost}
+                    disabled={savingPartId === part.id}
+                    onClick={cancelEditingPart}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-[var(--space-1)]">
+                {part.title && part.title !== part.partTypeLabel ? (
+                  <p className="text-[var(--text-sm)] text-[var(--muted)]">
+                    Tema: {part.title}
+                  </p>
+                ) : null}
+                {part.title && part.title !== part.partTypeLabel ? (
+                  <button
+                    type="button"
+                    className="mt-[var(--space-1)] text-[var(--text-sm)] text-[var(--accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+                    aria-label="Editar tema"
+                    onClick={() => startEditingPart(part)}
+                  >
+                    ✎ Editar tema
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-[var(--text-sm)] text-[var(--muted)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+                    onClick={() => startEditingPart(part)}
+                  >
+                    Adicionar tema…
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          {part.deletable ? (
+            <button
+              type="button"
+              className={btnGhost}
+              onClick={() => void onRemovePart(part.id)}
+            >
+              Remover
+            </button>
+          ) : null}
+        </div>
+
+        <ul className="flex flex-col gap-[var(--space-3)] border-l-2 border-[var(--line)] pl-[var(--space-3)]">
+          {part.slots.map((slot) => (
+            <li key={slot.id} className="flex flex-col gap-[var(--space-2)]">
+              <p className="text-[var(--text-sm)] font-medium text-[var(--ink)]">
+                {ROLE_LABELS[slot.role]}
+                {slot.participantName ? ` — ${slot.participantName}` : " — em aberto"}
+              </p>
+              <label className="text-[var(--text-sm)] text-[var(--muted)]">
+                Participante
+                <div className="mt-[var(--space-1)]">
+                  <ParticipantPicker
+                    slotId={slot.id}
+                    value={slot.participantId}
+                    participantName={slot.participantName}
+                    disabled={busySlotId === slot.id}
+                    busy={busySlotId === slot.id}
+                    onSelect={(participantId) =>
+                      void applyAssign(slot.id, participantId, false)
+                    }
+                  />
+                </div>
+              </label>
+              <div className="flex flex-wrap gap-[var(--space-2)]">
+                <button
+                  type="button"
+                  className={btnGhost}
+                  disabled={busySlotId === slot.id}
+                  onClick={() => void onSuggest(part, slot.role, slot.id)}
+                >
+                  Sugerir
+                </button>
+                {slot.participantId ? (
+                  <button
+                    type="button"
+                    className={btnGhost}
+                    disabled={busySlotId === slot.id}
+                    onClick={() => void onUnassign(slot.id)}
+                  >
+                    Limpar
+                  </button>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </>
+    );
+  }
+
+  function renderStaticPart(part: WeekPartView) {
+    return (
+      <li key={part.id} className="flex flex-col gap-[var(--space-3)]">
+        {renderPartBody(part)}
+      </li>
+    );
   }
 
   if (loading) {
@@ -375,231 +541,79 @@ export default function WeekSchedulePage({ params }: PageProps) {
           aria-labelledby={`topic-${group.topic}`}
           className="border-t border-[var(--line)] pt-[var(--space-5)]"
         >
-          <h2
-            id={`topic-${group.topic}`}
-            className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
-          >
-            {TOPIC_LABELS[group.topic]}
-          </h2>
-          <ul className="mt-[var(--space-4)] flex flex-col gap-[var(--space-5)]">
-            {group.parts.map((part) => (
-              <li key={part.id} className="flex flex-col gap-[var(--space-3)]">
-                <div className="flex items-start justify-between gap-[var(--space-3)]">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-[var(--ink)]">
-                      {part.partTypeLabel}
-                    </p>
-                    {editingPartId === part.id ? (
-                      <div className="mt-[var(--space-2)] flex flex-col gap-[var(--space-2)]">
-                        <label className="text-[var(--text-sm)] text-[var(--muted)]">
-                          Tema
-                          <input
-                            className={`${fieldClass} mt-[var(--space-1)]`}
-                            value={editTitle}
-                            onChange={(e) => setEditTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Escape") cancelEditingPart();
-                            }}
-                            maxLength={300}
-                            autoFocus
-                          />
-                        </label>
-                        {partTitleError ? (
-                          <p
-                            role="alert"
-                            className="text-[var(--text-sm)] text-[var(--danger)]"
-                          >
-                            {partTitleError}
-                          </p>
-                        ) : null}
-                        <div className="flex flex-wrap gap-[var(--space-2)]">
-                          <button
-                            type="button"
-                            className={btnPrimary}
-                            disabled={savingPartId === part.id}
-                            onClick={() => void savePartTitle(part.id)}
-                          >
-                            {savingPartId === part.id ? "Salvando…" : "Salvar"}
-                          </button>
-                          <button
-                            type="button"
-                            className={btnGhost}
-                            disabled={savingPartId === part.id}
-                            onClick={cancelEditingPart}
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-[var(--space-1)]">
-                        {part.title && part.title !== part.partTypeLabel ? (
-                          <p className="text-[var(--text-sm)] text-[var(--muted)]">
-                            Tema: {part.title}
-                          </p>
-                        ) : null}
-                        {part.title && part.title !== part.partTypeLabel ? (
-                          <button
-                            type="button"
-                            className="mt-[var(--space-1)] text-[var(--text-sm)] text-[var(--accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
-                            aria-label="Editar tema"
-                            onClick={() => startEditingPart(part)}
-                          >
-                            ✎ Editar tema
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="text-[var(--text-sm)] text-[var(--muted)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
-                            onClick={() => startEditingPart(part)}
-                          >
-                            Adicionar tema…
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {part.deletable ? (
-                    <button
-                      type="button"
-                      className={btnGhost}
-                      onClick={() => void onRemovePart(part.id)}
-                    >
-                      Remover
-                    </button>
-                  ) : null}
-                </div>
-
-                <ul className="flex flex-col gap-[var(--space-3)] border-l-2 border-[var(--line)] pl-[var(--space-3)]">
-                  {part.slots.map((slot) => (
-                    <li
-                      key={slot.id}
-                      className="flex flex-col gap-[var(--space-2)]"
-                    >
-                      <p className="text-[var(--text-sm)] font-medium text-[var(--ink)]">
-                        {ROLE_LABELS[slot.role]}
-                        {slot.participantName
-                          ? ` — ${slot.participantName}`
-                          : " — em aberto"}
-                      </p>
-                      <label className="text-[var(--text-sm)] text-[var(--muted)]">
-                        Participante
-                        <div className="mt-[var(--space-1)]">
-                          <ParticipantPicker
-                            slotId={slot.id}
-                            value={slot.participantId}
-                            participantName={slot.participantName}
-                            disabled={busySlotId === slot.id}
-                            busy={busySlotId === slot.id}
-                            onSelect={(participantId) =>
-                              void applyAssign(slot.id, participantId, false)
-                            }
-                          />
-                        </div>
-                      </label>
-                      <div className="flex flex-wrap gap-[var(--space-2)]">
-                        <button
-                          type="button"
-                          className={btnGhost}
-                          disabled={busySlotId === slot.id}
-                          onClick={() =>
-                            void onSuggest(part, slot.role, slot.id)
-                          }
-                        >
-                          Sugerir
-                        </button>
-                        {slot.participantId ? (
-                          <button
-                            type="button"
-                            className={btnGhost}
-                            disabled={busySlotId === slot.id}
-                            onClick={() => void onUnassign(slot.id)}
-                          >
-                            Limpar
-                          </button>
-                        ) : null}
-                      </div>
-                    </li>
-                  ))}
+          <div className="flex flex-wrap items-center justify-between gap-[var(--space-3)]">
+            <h2
+              id={`topic-${group.topic}`}
+              className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
+            >
+              {TOPIC_LABELS[group.topic]}
+            </h2>
+            {group.topic === PartTopic.MINISTRY ||
+            group.topic === PartTopic.CHRISTIAN_LIFE ? (
+              <button
+                type="button"
+                className={btnGhost}
+                onClick={() =>
+                  setAddModalTopic(
+                    group.topic as
+                      | PartTopic.MINISTRY
+                      | PartTopic.CHRISTIAN_LIFE,
+                  )
+                }
+              >
+                + Adicionar parte
+              </button>
+            ) : null}
+          </div>
+          {group.topic === PartTopic.MINISTRY ? (
+            <SortableWeekParts
+              parts={group.parts.sort((a, b) => a.sortOrder - b.sortOrder)}
+              onReorder={(orderedIds) =>
+                onReorderTopicParts(PartTopic.MINISTRY, orderedIds)
+              }
+              renderPart={renderPartBody}
+            />
+          ) : group.topic === PartTopic.CHRISTIAN_LIFE ? (
+            <>
+              <SortableWeekParts
+                parts={group.parts
+                  .filter((p) => p.partTypeCode !== "ESTUDO_BIBLICO")
+                  .sort((a, b) => a.sortOrder - b.sortOrder)}
+                onReorder={(orderedIds) =>
+                  onReorderTopicParts(PartTopic.CHRISTIAN_LIFE, orderedIds)
+                }
+                renderPart={renderPartBody}
+              />
+              {group.parts.some((p) => p.partTypeCode === "ESTUDO_BIBLICO") ? (
+                <ul className="mt-[var(--space-4)] flex flex-col gap-[var(--space-5)]">
+                  {group.parts
+                    .filter((p) => p.partTypeCode === "ESTUDO_BIBLICO")
+                    .map((part) => renderStaticPart(part))}
                 </ul>
-              </li>
-            ))}
-          </ul>
+              ) : null}
+            </>
+          ) : (
+            <ul className="mt-[var(--space-4)] flex flex-col gap-[var(--space-5)]">
+              {group.parts.map((part) => renderStaticPart(part))}
+            </ul>
+          )}
         </section>
       ))}
 
-      <section
-        aria-labelledby="add-part-heading"
-        className="border-t border-[var(--line)] pt-[var(--space-5)]"
-      >
-        <h2
-          id="add-part-heading"
-          className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
-        >
-          Adicionar parte
-        </h2>
-        <p className="mt-[var(--space-2)] text-[var(--text-sm)] text-[var(--muted)]">
-          Inclua partes FSM ou NVC extras nesta semana.
-        </p>
-        <form
-          onSubmit={(e) => void onAddPart(e)}
-          className="mt-[var(--space-4)] flex flex-col gap-[var(--space-3)]"
-        >
-          <label className="text-[var(--text-sm)] text-[var(--muted)]">
-            Seção
-            <select
-              className={`${fieldClass} mt-[var(--space-1)]`}
-              value={addTopic}
-              onChange={(e) =>
-                setAddTopic(
-                  e.target.value as
-                    | PartTopic.MINISTRY
-                    | PartTopic.CHRISTIAN_LIFE,
-                )
-              }
-            >
-              <option value={PartTopic.MINISTRY}>
-                {TOPIC_LABELS[PartTopic.MINISTRY]}
-              </option>
-              <option value={PartTopic.CHRISTIAN_LIFE}>
-                {TOPIC_LABELS[PartTopic.CHRISTIAN_LIFE]}
-              </option>
-            </select>
-          </label>
-          <label className="text-[var(--text-sm)] text-[var(--muted)]">
-            Tipo
-            <select
-              className={`${fieldClass} mt-[var(--space-1)]`}
-              value={addPartTypeId}
-              onChange={(e) => setAddPartTypeId(e.target.value)}
-              required
-            >
-              {addableTypes.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-[var(--text-sm)] text-[var(--muted)]">
-            Tema (opcional)
-            <input
-              className={`${fieldClass} mt-[var(--space-1)]`}
-              value={addTitle}
-              onChange={(e) => setAddTitle(e.target.value)}
-              maxLength={300}
-              placeholder="Texto livre do tema"
-            />
-          </label>
-          <button
-            type="submit"
-            className={`${btnPrimary} self-start`}
-            disabled={addPending || !addPartTypeId}
-          >
-            {addPending ? "Adicionando…" : "Adicionar"}
-          </button>
-        </form>
-      </section>
+      {addModalTopic ? (
+        <AddWeekPartModal
+          open
+          topic={addModalTopic}
+          partTypes={
+            addModalTopic === PartTopic.MINISTRY ? fsmTypes : nvcTypes
+          }
+          pending={addPending}
+          onClose={() => {
+            if (!addPending) setAddModalTopic(null);
+          }}
+          onConfirm={onConfirmAddPart}
+        />
+      ) : null}
     </main>
   );
 }

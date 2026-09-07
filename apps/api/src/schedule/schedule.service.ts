@@ -42,6 +42,8 @@ import {
 import type { AddWeekPartDto } from './dto/add-week-part.dto';
 import type { AssignSlotDto } from './dto/assign-slot.dto';
 import type { HistoryQueryDto } from './dto/history-query.dto';
+import type { MonthsQueryDto } from './dto/months-query.dto';
+import type { ReorderWeekPartsDto } from './dto/reorder-week-parts.dto';
 import type { UpdateWeekPartDto } from './dto/update-week-part.dto';
 
 type Tx = Prisma.TransactionClient;
@@ -81,6 +83,31 @@ type MonthView = {
   bimester: { id: string; year: number; index: number };
   weeks: WeekView[];
   complete: boolean;
+};
+
+export type MonthSummary = {
+  yearMonth: string;
+  exists: true;
+  complete: boolean;
+  openSlots: number;
+  totalSlots: number;
+  weekCount: number;
+  isPast: boolean;
+  isCurrent: boolean;
+  isInHorizon: boolean;
+  href: string;
+};
+
+export type ListScheduleMonthsResult = {
+  currentYearMonth: string;
+  horizonEnd: string;
+  months: MonthSummary[];
+};
+
+export type EnsureHorizonResult = {
+  ensuredFrom: string;
+  ensuredTo: string;
+  monthsEnsured: number;
 };
 
 type SlotWithContext = Awaited<
@@ -162,6 +189,81 @@ export class ScheduleService {
     }
 
     return this.getMonth(yearMonth);
+  }
+
+  async ensureHorizon(now: Date = new Date()): Promise<EnsureHorizonResult> {
+    const start = currentYearMonth(now);
+    const end = addMonths(start, 6);
+    let monthsEnsured = 0;
+
+    for (let i = 0; i <= 6; i++) {
+      const ym = addMonths(start, i);
+      await this.ensureMonth(formatYearMonth(ym.year, ym.month));
+      monthsEnsured += 1;
+    }
+
+    return {
+      ensuredFrom: formatYearMonth(start.year, start.month),
+      ensuredTo: formatYearMonth(end.year, end.month),
+      monthsEnsured,
+    };
+  }
+
+  async listScheduleMonths(
+    query: MonthsQueryDto,
+    now: Date = new Date(),
+  ): Promise<ListScheduleMonthsResult> {
+    const current = currentYearMonth(now);
+    const currentStr = formatYearMonth(current.year, current.month);
+    const horizonEndYm = addMonths(current, 6);
+    const horizonEnd = formatYearMonth(horizonEndYm.year, horizonEndYm.month);
+
+    await this.ensureHorizon(now);
+
+    const toYm = query.to ? this.parseYmOrThrow(query.to) : horizonEndYm;
+    const fromYm = query.from ? this.parseYmOrThrow(query.from) : undefined;
+
+    const months = await prisma.month.findMany({
+      where: {
+        AND: [
+          fromYm ? this.monthWhereGte(fromYm) : {},
+          this.monthWhereLte(toYm),
+        ],
+      },
+    });
+
+    const summaries: MonthSummary[] = [];
+    for (const month of months) {
+      const ym: YearMonth = { year: month.year, month: month.month };
+      const yearMonth = formatYearMonth(month.year, month.month);
+      const status = await this.getMonthStatus(ym);
+
+      summaries.push({
+        yearMonth,
+        exists: true,
+        complete: status.complete,
+        openSlots: status.openSlots < 0 ? 0 : status.openSlots,
+        totalSlots: status.totalSlots < 0 ? 0 : status.totalSlots,
+        weekCount: status.weekCount,
+        isPast: yearMonth < currentStr,
+        isCurrent: yearMonth === currentStr,
+        isInHorizon: yearMonth >= currentStr && yearMonth <= horizonEnd,
+        href: `/schedule/${yearMonth}`,
+      });
+    }
+
+    const past = summaries
+      .filter((m) => m.isPast)
+      .sort((a, b) => b.yearMonth.localeCompare(a.yearMonth));
+    const rest = summaries
+      .filter((m) => !m.isPast)
+      .sort((a, b) => a.yearMonth.localeCompare(b.yearMonth));
+
+    return {
+      currentYearMonth: currentStr,
+      horizonEnd,
+      months: [...past, ...rest],
+    };
   }
 
   async getMonth(yearMonth: string): Promise<MonthView> {
@@ -294,6 +396,89 @@ export class ScheduleService {
       }
       await tx.weekPart.delete({ where: { id: partId } });
     });
+
+    return { ok: true };
+  }
+
+  async reorderWeekParts(
+    weekId: string,
+    dto: ReorderWeekPartsDto,
+  ): Promise<{ ok: true }> {
+    const week = await prisma.week.findUnique({
+      where: { id: weekId },
+      include: { parts: { include: { partType: true } } },
+    });
+    if (!week) {
+      throw new NotFoundException('Semana não encontrada');
+    }
+
+    const reorderable = week.parts.filter(
+      (p) =>
+        (p.topic === PartTopic.MINISTRY ||
+          p.topic === PartTopic.CHRISTIAN_LIFE) &&
+        !isStudyPartType(p.partType.code),
+    );
+    const reorderableById = new Map(reorderable.map((p) => [p.id, p]));
+    const payloadIds = dto.orderedPartIds;
+
+    if (payloadIds.length !== reorderable.length) {
+      throw new BadRequestException(
+        'orderedPartIds deve conter exatamente todas as partes FSM e NVC reordenáveis da semana',
+      );
+    }
+
+    if (new Set(payloadIds).size !== payloadIds.length) {
+      throw new BadRequestException('orderedPartIds contém ids duplicados');
+    }
+
+    for (const id of payloadIds) {
+      const part = reorderableById.get(id);
+      if (!part) {
+        throw new BadRequestException(
+          'Cada id deve pertencer à semana e ser FSM ou NVC (exceto estudo)',
+        );
+      }
+    }
+
+    const fsmOrder = payloadIds.filter(
+      (id) => reorderableById.get(id)!.topic === PartTopic.MINISTRY,
+    );
+    const nvcOrder = payloadIds.filter(
+      (id) => reorderableById.get(id)!.topic === PartTopic.CHRISTIAN_LIFE,
+    );
+
+    const expectedFsmCount = reorderable.filter(
+      (p) => p.topic === PartTopic.MINISTRY,
+    ).length;
+    const expectedNvcCount = reorderable.filter(
+      (p) => p.topic === PartTopic.CHRISTIAN_LIFE,
+    ).length;
+
+    if (
+      fsmOrder.length !== expectedFsmCount ||
+      nvcOrder.length !== expectedNvcCount
+    ) {
+      throw new BadRequestException(
+        'Não é permitido mover partes entre seções FSM e NVC',
+      );
+    }
+
+    const updates: Array<{ id: string; sortOrder: number }> = [];
+    fsmOrder.forEach((id, index) => {
+      updates.push({ id, sortOrder: 20 + index });
+    });
+    nvcOrder.forEach((id, index) => {
+      updates.push({ id, sortOrder: 30 + index });
+    });
+
+    await prisma.$transaction(
+      updates.map((u) =>
+        prisma.weekPart.update({
+          where: { id: u.id },
+          data: { sortOrder: u.sortOrder },
+        }),
+      ),
+    );
 
     return { ok: true };
   }
@@ -610,7 +795,7 @@ export class ScheduleService {
 
     for (let i = 0; i < 24; i++) {
       const yearMonth = formatYearMonth(cursor.year, cursor.month);
-      const status = await this.monthCompleteness(cursor);
+      const status = await this.getMonthStatus(cursor);
 
       if (!status.complete) {
         return {
@@ -933,10 +1118,12 @@ export class ScheduleService {
     return slot;
   }
 
-  private async monthCompleteness(ym: YearMonth): Promise<{
+  async getMonthStatus(ym: YearMonth): Promise<{
     exists: boolean;
     complete: boolean;
     openSlots: number;
+    totalSlots: number;
+    weekCount: number;
   }> {
     const month = await prisma.month.findUnique({
       where: { year_month: { year: ym.year, month: ym.month } },
@@ -950,7 +1137,13 @@ export class ScheduleService {
     });
 
     if (!month || month.weeks.length === 0) {
-      return { exists: Boolean(month), complete: false, openSlots: -1 };
+      return {
+        exists: Boolean(month),
+        complete: false,
+        openSlots: -1,
+        totalSlots: -1,
+        weekCount: month?.weeks.length ?? 0,
+      };
     }
 
     let open = 0;
@@ -968,6 +1161,26 @@ export class ScheduleService {
       exists: true,
       complete: total > 0 && open === 0,
       openSlots: open,
+      totalSlots: total,
+      weekCount: month.weeks.length,
+    };
+  }
+
+  private monthWhereGte(ym: YearMonth): Prisma.MonthWhereInput {
+    return {
+      OR: [
+        { year: { gt: ym.year } },
+        { year: ym.year, month: { gte: ym.month } },
+      ],
+    };
+  }
+
+  private monthWhereLte(ym: YearMonth): Prisma.MonthWhereInput {
+    return {
+      OR: [
+        { year: { lt: ym.year } },
+        { year: ym.year, month: { lte: ym.month } },
+      ],
     };
   }
 
