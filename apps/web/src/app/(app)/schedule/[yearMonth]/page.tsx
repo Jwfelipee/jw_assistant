@@ -96,6 +96,12 @@ export default function ScheduleMonthPage() {
 
       <div className="relative mx-auto flex w-full max-w-[var(--shell-max)] flex-col gap-[var(--space-6)]">
         <header className="border-l-[3px] border-[var(--accent)] pl-[var(--space-4)]">
+          <Link
+            href="/schedule"
+            className="mb-[var(--space-2)] inline-flex min-h-[44px] items-center text-[var(--text-sm)] text-[var(--accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+          >
+            ← Todos os meses
+          </Link>
           <p className="font-[family-name:var(--font-brand)] text-[var(--text-display)] font-semibold leading-tight tracking-tight text-[var(--ink)]">
             {valid ? formatYearMonthLabel(yearMonth) : "Mês"}
           </p>

@@ -24,10 +24,10 @@
 
 📄 [Detalhes](./tasks/task-02-schedule-month-hub-ui.md)
 
-- [ ] 2.1 Replace `/schedule` redirect with month hub page (planning + past groups, status badges)
-- [ ] 2.2 Call `ensureHorizon` on hub mount; show loading and error states
-- [ ] 2.3 Add "Todos os meses" back link on `/schedule/[yearMonth]/page.tsx`
-- [ ] 2.4 Smoke test: hub → pick month → week → back to hub
+- [x] 2.1 Replace `/schedule` redirect with month hub page (planning + past groups, status badges)
+- [x] 2.2 Call `ensureHorizon` on hub mount; show loading and error states
+- [x] 2.3 Add "Todos os meses" back link on `/schedule/[yearMonth]/page.tsx`
+- [x] 2.4 Smoke test: hub → pick month → week → back to hub
 
 ## 3. History sub-tabs
 

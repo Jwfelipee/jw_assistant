@@ -89,6 +89,7 @@ export type MonthSummary = {
   exists: true;
   complete: boolean;
   openSlots: number;
+  totalSlots: number;
   weekCount: number;
   isPast: boolean;
   isCurrent: boolean;
@@ -241,6 +242,7 @@ export class ScheduleService {
         exists: true,
         complete: status.complete,
         openSlots: status.openSlots < 0 ? 0 : status.openSlots,
+        totalSlots: status.totalSlots < 0 ? 0 : status.totalSlots,
         weekCount: status.weekCount,
         isPast: yearMonth < currentStr,
         isCurrent: yearMonth === currentStr,
@@ -1036,6 +1038,7 @@ export class ScheduleService {
     exists: boolean;
     complete: boolean;
     openSlots: number;
+    totalSlots: number;
     weekCount: number;
   }> {
     const month = await prisma.month.findUnique({
@@ -1054,6 +1057,7 @@ export class ScheduleService {
         exists: Boolean(month),
         complete: false,
         openSlots: -1,
+        totalSlots: -1,
         weekCount: month?.weeks.length ?? 0,
       };
     }
@@ -1073,6 +1077,7 @@ export class ScheduleService {
       exists: true,
       complete: total > 0 && open === 0,
       openSlots: open,
+      totalSlots: total,
       weekCount: month.weeks.length,
     };
   }

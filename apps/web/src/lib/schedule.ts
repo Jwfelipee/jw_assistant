@@ -97,6 +97,7 @@ export type MonthSummary = {
   exists: true;
   complete: boolean;
   openSlots: number;
+  totalSlots: number;
   weekCount: number;
   isPast: boolean;
   isCurrent: boolean;

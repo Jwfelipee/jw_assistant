@@ -550,6 +550,7 @@ describe('ScheduleService.getMonthStatus', () => {
       exists: true,
       complete: false,
       openSlots: -1,
+      totalSlots: -1,
       weekCount: 0,
     });
   });
@@ -581,6 +582,7 @@ describe('ScheduleService.getMonthStatus', () => {
       exists: true,
       complete: true,
       openSlots: 0,
+      totalSlots: 2,
       weekCount: 1,
     });
   });
@@ -613,6 +615,7 @@ describe('ScheduleService.getMonthStatus', () => {
       exists: true,
       complete: false,
       openSlots: 2,
+      totalSlots: 3,
       weekCount: 1,
     });
   });
@@ -644,12 +647,30 @@ describe('ScheduleService.listScheduleMonths', () => {
 
     jest.spyOn(service, 'getMonthStatus').mockImplementation(async (ym) => {
       if (ym.month === 8) {
-        return { exists: true, complete: true, openSlots: 0, weekCount: 4 };
+        return {
+          exists: true,
+          complete: true,
+          openSlots: 0,
+          totalSlots: 12,
+          weekCount: 4,
+        };
       }
       if (ym.month === 9) {
-        return { exists: true, complete: false, openSlots: 3, weekCount: 4 };
+        return {
+          exists: true,
+          complete: false,
+          openSlots: 3,
+          totalSlots: 12,
+          weekCount: 4,
+        };
       }
-      return { exists: true, complete: false, openSlots: 12, weekCount: 4 };
+      return {
+        exists: true,
+        complete: false,
+        openSlots: 12,
+        totalSlots: 12,
+        weekCount: 4,
+      };
     });
 
     const result = await service.listScheduleMonths({}, fixedNow);
