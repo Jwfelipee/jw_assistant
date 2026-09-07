@@ -92,6 +92,24 @@ export type NextMonthInfo = {
   href: string;
 };
 
+export type MonthSummary = {
+  yearMonth: string;
+  exists: true;
+  complete: boolean;
+  openSlots: number;
+  weekCount: number;
+  isPast: boolean;
+  isCurrent: boolean;
+  isInHorizon: boolean;
+  href: string;
+};
+
+export type ListScheduleMonthsResult = {
+  currentYearMonth: string;
+  horizonEnd: string;
+  months: MonthSummary[];
+};
+
 export type HistoryItem = {
   id: string;
   role: AssignmentRole;
@@ -190,6 +208,29 @@ async function parseError(res: Response): Promise<string> {
     /* ignore */
   }
   return "Não foi possível concluir a operação.";
+}
+
+export async function ensureHorizon(): Promise<void> {
+  const res = await fetch("/api/schedule/horizon/ensure", {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+}
+
+export async function listScheduleMonths(
+  params?: { from?: string; to?: string },
+): Promise<ListScheduleMonthsResult> {
+  const qs = new URLSearchParams();
+  if (params?.from) qs.set("from", params.from);
+  if (params?.to) qs.set("to", params.to);
+  const suffix = qs.toString() ? `?${qs}` : "";
+  const res = await fetch(`/api/schedule/months${suffix}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json() as Promise<ListScheduleMonthsResult>;
 }
 
 export async function ensureMonth(yearMonth: string): Promise<MonthView> {

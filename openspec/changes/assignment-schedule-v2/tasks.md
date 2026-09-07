@@ -15,10 +15,10 @@
 
 📄 [Detalhes](./tasks/task-01-month-horizon-and-list-api.md)
 
-- [ ] 1.1 Extract `monthCompleteness` to a reusable method and add `ensureHorizon(now?)` in `schedule.service.ts`
-- [ ] 1.2 Implement `POST /schedule/horizon/ensure` and `GET /schedule/months` in controller + DTOs
-- [ ] 1.3 Add `listScheduleMonths` and `ensureHorizon` helpers to `apps/web/src/lib/schedule.ts`
-- [ ] 1.4 Add unit tests for horizon idempotency and month list status fields
+- [x] 1.1 Extract `monthCompleteness` to a reusable method and add `ensureHorizon(now?)` in `schedule.service.ts`
+- [x] 1.2 Implement `POST /schedule/horizon/ensure` and `GET /schedule/months` in controller + DTOs
+- [x] 1.3 Add `listScheduleMonths` and `ensureHorizon` helpers to `apps/web/src/lib/schedule.ts`
+- [x] 1.4 Add unit tests for horizon idempotency and month list status fields
 
 ## 2. Schedule month hub UI
 

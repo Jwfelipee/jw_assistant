@@ -15,12 +15,23 @@ import { AssignmentRole } from '@jw/shared';
 import { AddWeekPartDto } from './dto/add-week-part.dto';
 import { AssignSlotDto } from './dto/assign-slot.dto';
 import { HistoryQueryDto } from './dto/history-query.dto';
+import { MonthsQueryDto } from './dto/months-query.dto';
 import { UpdateWeekPartDto } from './dto/update-week-part.dto';
 import { ScheduleService } from './schedule.service';
 
 @Controller()
 export class ScheduleController {
   constructor(private readonly scheduleService: ScheduleService) {}
+
+  @Post('schedule/horizon/ensure')
+  ensureHorizon() {
+    return this.scheduleService.ensureHorizon();
+  }
+
+  @Get('schedule/months')
+  listMonths(@Query() query: MonthsQueryDto) {
+    return this.scheduleService.listScheduleMonths(query);
+  }
 
   @Post('schedule/months/:yearMonth/ensure')
   ensureMonth(@Param('yearMonth') yearMonth: string) {

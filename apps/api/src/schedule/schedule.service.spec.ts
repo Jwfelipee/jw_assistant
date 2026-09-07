@@ -28,6 +28,10 @@ jest.mock('@jw/database', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
+      month: {
+        findUnique: jest.fn(),
+        findMany: jest.fn(),
+      },
     },
   };
 });
@@ -477,5 +481,213 @@ describe('ScheduleService.suggestForPart', () => {
 
     expect(result.suggestion).toBeNull();
     expect(result.candidatesCount).toBe(0);
+  });
+});
+
+describe('ScheduleService.ensureHorizon', () => {
+  const service = new ScheduleService();
+  const fixedNow = new Date('2026-09-15');
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('ensures exactly 7 months from current civil month through +6', async () => {
+    const ensureMonthSpy = jest
+      .spyOn(service, 'ensureMonth')
+      .mockResolvedValue({} as never);
+
+    const result = await service.ensureHorizon(fixedNow);
+
+    expect(result).toEqual({
+      ensuredFrom: '2026-09',
+      ensuredTo: '2027-03',
+      monthsEnsured: 7,
+    });
+    expect(ensureMonthSpy).toHaveBeenCalledTimes(7);
+    expect(ensureMonthSpy.mock.calls.map((c) => c[0])).toEqual([
+      '2026-09',
+      '2026-10',
+      '2026-11',
+      '2026-12',
+      '2027-01',
+      '2027-02',
+      '2027-03',
+    ]);
+  });
+
+  it('is idempotent when called twice', async () => {
+    const ensureMonthSpy = jest
+      .spyOn(service, 'ensureMonth')
+      .mockResolvedValue({} as never);
+
+    await service.ensureHorizon(fixedNow);
+    await service.ensureHorizon(fixedNow);
+
+    expect(ensureMonthSpy).toHaveBeenCalledTimes(14);
+  });
+});
+
+describe('ScheduleService.getMonthStatus', () => {
+  const service = new ScheduleService();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns incomplete status for empty month without weeks', async () => {
+    mockedPrisma.month.findUnique.mockResolvedValue({
+      id: 'month-1',
+      year: 2026,
+      month: 9,
+      bimesterId: 'bim-1',
+      weeks: [],
+    });
+
+    const status = await service.getMonthStatus({ year: 2026, month: 9 });
+
+    expect(status).toEqual({
+      exists: true,
+      complete: false,
+      openSlots: -1,
+      weekCount: 0,
+    });
+  });
+
+  it('returns complete status when every slot is filled', async () => {
+    mockedPrisma.month.findUnique.mockResolvedValue({
+      id: 'month-1',
+      year: 2026,
+      month: 9,
+      bimesterId: 'bim-1',
+      weeks: [
+        {
+          id: 'week-1',
+          parts: [
+            {
+              slots: [
+                { participantId: 'p-1' },
+                { participantId: 'p-2' },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const status = await service.getMonthStatus({ year: 2026, month: 9 });
+
+    expect(status).toEqual({
+      exists: true,
+      complete: true,
+      openSlots: 0,
+      weekCount: 1,
+    });
+  });
+
+  it('returns incomplete status with open slot count when slots are empty', async () => {
+    mockedPrisma.month.findUnique.mockResolvedValue({
+      id: 'month-1',
+      year: 2026,
+      month: 9,
+      bimesterId: 'bim-1',
+      weeks: [
+        {
+          id: 'week-1',
+          parts: [
+            {
+              slots: [
+                { participantId: 'p-1' },
+                { participantId: null },
+                { participantId: null },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    const status = await service.getMonthStatus({ year: 2026, month: 9 });
+
+    expect(status).toEqual({
+      exists: true,
+      complete: false,
+      openSlots: 2,
+      weekCount: 1,
+    });
+  });
+});
+
+describe('ScheduleService.listScheduleMonths', () => {
+  const service = new ScheduleService();
+  const fixedNow = new Date('2026-09-15');
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(service, 'ensureHorizon').mockResolvedValue({
+      ensuredFrom: '2026-09',
+      ensuredTo: '2027-03',
+      monthsEnsured: 7,
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('returns months with correct horizon and past flags', async () => {
+    mockedPrisma.month.findMany.mockResolvedValue([
+      { id: 'm-past', year: 2026, month: 8, bimesterId: 'b1' },
+      { id: 'm-current', year: 2026, month: 9, bimesterId: 'b1' },
+      { id: 'm-future', year: 2026, month: 10, bimesterId: 'b1' },
+    ]);
+
+    jest.spyOn(service, 'getMonthStatus').mockImplementation(async (ym) => {
+      if (ym.month === 8) {
+        return { exists: true, complete: true, openSlots: 0, weekCount: 4 };
+      }
+      if (ym.month === 9) {
+        return { exists: true, complete: false, openSlots: 3, weekCount: 4 };
+      }
+      return { exists: true, complete: false, openSlots: 12, weekCount: 4 };
+    });
+
+    const result = await service.listScheduleMonths({}, fixedNow);
+
+    expect(result.currentYearMonth).toBe('2026-09');
+    expect(result.horizonEnd).toBe('2027-03');
+    expect(result.months.map((m) => m.yearMonth)).toEqual([
+      '2026-08',
+      '2026-09',
+      '2026-10',
+    ]);
+
+    const past = result.months.find((m) => m.yearMonth === '2026-08');
+    const current = result.months.find((m) => m.yearMonth === '2026-09');
+    const future = result.months.find((m) => m.yearMonth === '2026-10');
+
+    expect(past).toMatchObject({
+      isPast: true,
+      isCurrent: false,
+      isInHorizon: false,
+      complete: true,
+      href: '/schedule/2026-08',
+    });
+    expect(current).toMatchObject({
+      isPast: false,
+      isCurrent: true,
+      isInHorizon: true,
+      complete: false,
+      openSlots: 3,
+      weekCount: 4,
+    });
+    expect(future).toMatchObject({
+      isPast: false,
+      isCurrent: false,
+      isInHorizon: true,
+      complete: false,
+      openSlots: 12,
+    });
+    expect(service.ensureHorizon).toHaveBeenCalledWith(fixedNow);
   });
 });
