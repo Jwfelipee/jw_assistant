@@ -161,8 +161,28 @@ Atualizar `s140-model.spec.ts`:
 
 ### Critérios de aceite
 
-- [ ] PDF revisado manualmente
-- [ ] Checklist de gaps do design.md endereçado
+- [x] PDF revisado manualmente
+- [x] Checklist de gaps do design.md endereçado
+
+### Visual regression checklist (task 4.4)
+
+| Elemento S-140 | Status |
+|----------------|--------|
+| Uma semana por página | ✓ `<Page>` por week |
+| Cabeçalho `dd/MM/yyyy \| LEITURA SEMANAL DA BÍBLIA` | ✓ |
+| Presidente / Oração inicial tabular + `0:00` | ✓ |
+| Cântico abertura placeholder | ✓ `Cântico [número]` |
+| Comentários iniciais (1 min) | ✓ placeholder nome |
+| TESOUROS + Salão principal | ✓ |
+| Partes 1–3 com duração | ✓ |
+| FSM 4+ com duração e par | ✓ `(X min)` + Nome/Nome |
+| NVC cântico + partes numeradas | ✓ |
+| Estudo 10 + Dirigente/leitor | ✓ |
+| Comentários finais (3 min) | ✓ |
+| Cântico + Oração final | ✓ |
+| Coluna `0:00` | ✓ |
+
+**Diferenças residuais aceitas:** fonte Helvetica (react-pdf default) vs Word; tons de cor aproximados; cânticos e comentários permanecem placeholders até haver modelo de dados.
 
 ---
 

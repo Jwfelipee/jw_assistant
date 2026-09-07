@@ -26,20 +26,28 @@ export type S140MonthInput = {
 };
 
 export type S140PartLine = {
+  number: number | null;
   title: string;
+  duration: string | null;
   assignee: string;
-  studyPair: boolean;
+  studyPair?: boolean;
+  showDirectorLabel?: boolean;
 };
 
 export type S140WeekView = {
-  meetingDateLabel: string;
+  meetingDateShort: string;
   president: string;
   openingPrayer: string;
   closingPrayer: string;
+  openingSong: string;
+  closingSong: string;
+  openingComments: string;
+  closingComments: string;
   treasures: S140PartLine[];
   ministry: S140PartLine[];
   christianLife: S140PartLine[];
   study: S140PartLine | null;
+  nvcSong: string;
 };
 
 export type S140DocumentData = {

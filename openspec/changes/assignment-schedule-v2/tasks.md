@@ -42,10 +42,10 @@
 
 📄 [Detalhes](./tasks/task-04-s140-pdf-fidelity.md)
 
-- [ ] 4.1 Extend `s140-model.ts` with numbering, durations map, and enriched week view types
-- [ ] 4.2 Rewrite `s140-document.tsx` — one page per week, tabular layout matching `S-140.docx`
-- [ ] 4.3 Update `s140-model.spec.ts` and add visual regression checklist in task notes
-- [ ] 4.4 Export seed month PDF and verify against `S-140.docx` structure
+- [x] 4.1 Extend `s140-model.ts` with numbering, durations map, and enriched week view types
+- [x] 4.2 Rewrite `s140-document.tsx` — one page per week, tabular layout matching `S-140.docx`
+- [x] 4.3 Update `s140-model.spec.ts` and add visual regression checklist in task notes
+- [x] 4.4 Export seed month PDF and verify against `S-140.docx` structure
 
 ## 5. Add part modal
 
