@@ -51,9 +51,9 @@
 
 📄 [Detalhes](./tasks/task-05-add-part-modal.md)
 
-- [ ] 5.1 Create `AddWeekPartModal` component (section preset, type select, optional title)
-- [ ] 5.2 Add `+` buttons to FSM and NVC section headers in week page; remove bottom form
-- [ ] 5.3 Smoke test: add FSM and NVC parts via modal from each section
+- [x] 5.1 Create `AddWeekPartModal` component (section preset, type select, optional title)
+- [x] 5.2 Add `+` buttons to FSM and NVC section headers in week page; remove bottom form
+- [x] 5.3 Smoke test: add FSM and NVC parts via modal from each section
 
 ## 6. Part reorder drag
 

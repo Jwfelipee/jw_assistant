@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, use, useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { AssignmentRole, PartTopic } from "@jw/shared";
+import { AddWeekPartModal } from "@/components/add-week-part-modal";
 import { ParticipantPicker } from "@/components/participant-picker";
 import { listPartTypes, type PartTypeDto } from "@/lib/catalog";
 import {
@@ -64,11 +65,9 @@ export default function WeekSchedulePage({ params }: PageProps) {
   const [editTitle, setEditTitle] = useState("");
   const [partTitleError, setPartTitleError] = useState<string | null>(null);
   const [savingPartId, setSavingPartId] = useState<string | null>(null);
-  const [addTopic, setAddTopic] = useState<PartTopic.MINISTRY | PartTopic.CHRISTIAN_LIFE>(
-    PartTopic.MINISTRY,
-  );
-  const [addPartTypeId, setAddPartTypeId] = useState("");
-  const [addTitle, setAddTitle] = useState("");
+  const [addModalTopic, setAddModalTopic] = useState<
+    PartTopic.MINISTRY | PartTopic.CHRISTIAN_LIFE | null
+  >(null);
   const [addPending, setAddPending] = useState(false);
 
   const load = useCallback(async () => {
@@ -108,20 +107,6 @@ export default function WeekSchedulePage({ params }: PageProps) {
       cancelled = true;
     };
   }, [load]);
-
-  const addableTypes = useMemo(() => {
-    return addTopic === PartTopic.MINISTRY ? fsmTypes : nvcTypes;
-  }, [addTopic, fsmTypes, nvcTypes]);
-
-  useEffect(() => {
-    if (addableTypes.length === 0) {
-      setAddPartTypeId("");
-      return;
-    }
-    if (!addableTypes.some((t) => t.id === addPartTypeId)) {
-      setAddPartTypeId(addableTypes[0]!.id);
-    }
-  }, [addableTypes, addPartTypeId]);
 
   const partsByTopic = useMemo(() => {
     if (!week) return [];
@@ -267,15 +252,14 @@ export default function WeekSchedulePage({ params }: PageProps) {
     }
   }
 
-  async function onAddPart(event: FormEvent) {
-    event.preventDefault();
-    if (!week || !addPartTypeId) return;
+  async function onConfirmAddPart(partTypeId: string, title?: string) {
+    if (!week) return;
     setAddPending(true);
     setError(null);
     try {
-      await addWeekPart(week.id, addPartTypeId, addTitle || undefined);
-      setAddTitle("");
+      await addWeekPart(week.id, partTypeId, title);
       await load();
+      setAddModalTopic(null);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Não foi possível adicionar a parte.",
@@ -375,12 +359,30 @@ export default function WeekSchedulePage({ params }: PageProps) {
           aria-labelledby={`topic-${group.topic}`}
           className="border-t border-[var(--line)] pt-[var(--space-5)]"
         >
-          <h2
-            id={`topic-${group.topic}`}
-            className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
-          >
-            {TOPIC_LABELS[group.topic]}
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-[var(--space-3)]">
+            <h2
+              id={`topic-${group.topic}`}
+              className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
+            >
+              {TOPIC_LABELS[group.topic]}
+            </h2>
+            {group.topic === PartTopic.MINISTRY ||
+            group.topic === PartTopic.CHRISTIAN_LIFE ? (
+              <button
+                type="button"
+                className={btnGhost}
+                onClick={() =>
+                  setAddModalTopic(
+                    group.topic as
+                      | PartTopic.MINISTRY
+                      | PartTopic.CHRISTIAN_LIFE,
+                  )
+                }
+              >
+                + Adicionar parte
+              </button>
+            ) : null}
+          </div>
           <ul className="mt-[var(--space-4)] flex flex-col gap-[var(--space-5)]">
             {group.parts.map((part) => (
               <li key={part.id} className="flex flex-col gap-[var(--space-3)]">
@@ -528,78 +530,20 @@ export default function WeekSchedulePage({ params }: PageProps) {
         </section>
       ))}
 
-      <section
-        aria-labelledby="add-part-heading"
-        className="border-t border-[var(--line)] pt-[var(--space-5)]"
-      >
-        <h2
-          id="add-part-heading"
-          className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
-        >
-          Adicionar parte
-        </h2>
-        <p className="mt-[var(--space-2)] text-[var(--text-sm)] text-[var(--muted)]">
-          Inclua partes FSM ou NVC extras nesta semana.
-        </p>
-        <form
-          onSubmit={(e) => void onAddPart(e)}
-          className="mt-[var(--space-4)] flex flex-col gap-[var(--space-3)]"
-        >
-          <label className="text-[var(--text-sm)] text-[var(--muted)]">
-            Seção
-            <select
-              className={`${fieldClass} mt-[var(--space-1)]`}
-              value={addTopic}
-              onChange={(e) =>
-                setAddTopic(
-                  e.target.value as
-                    | PartTopic.MINISTRY
-                    | PartTopic.CHRISTIAN_LIFE,
-                )
-              }
-            >
-              <option value={PartTopic.MINISTRY}>
-                {TOPIC_LABELS[PartTopic.MINISTRY]}
-              </option>
-              <option value={PartTopic.CHRISTIAN_LIFE}>
-                {TOPIC_LABELS[PartTopic.CHRISTIAN_LIFE]}
-              </option>
-            </select>
-          </label>
-          <label className="text-[var(--text-sm)] text-[var(--muted)]">
-            Tipo
-            <select
-              className={`${fieldClass} mt-[var(--space-1)]`}
-              value={addPartTypeId}
-              onChange={(e) => setAddPartTypeId(e.target.value)}
-              required
-            >
-              {addableTypes.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-[var(--text-sm)] text-[var(--muted)]">
-            Tema (opcional)
-            <input
-              className={`${fieldClass} mt-[var(--space-1)]`}
-              value={addTitle}
-              onChange={(e) => setAddTitle(e.target.value)}
-              maxLength={300}
-              placeholder="Texto livre do tema"
-            />
-          </label>
-          <button
-            type="submit"
-            className={`${btnPrimary} self-start`}
-            disabled={addPending || !addPartTypeId}
-          >
-            {addPending ? "Adicionando…" : "Adicionar"}
-          </button>
-        </form>
-      </section>
+      {addModalTopic ? (
+        <AddWeekPartModal
+          open
+          topic={addModalTopic}
+          partTypes={
+            addModalTopic === PartTopic.MINISTRY ? fsmTypes : nvcTypes
+          }
+          pending={addPending}
+          onClose={() => {
+            if (!addPending) setAddModalTopic(null);
+          }}
+          onConfirm={onConfirmAddPart}
+        />
+      ) : null}
     </main>
   );
 }
