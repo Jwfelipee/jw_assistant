@@ -8,13 +8,36 @@ Na raiz do repositório:
 
 ```bash
 cp .env.example .env
-docker compose up --build
+pnpm run build:docker
 ```
 
-Em background:
+Em background (equivalente a `docker compose up --build -d`):
 
 ```bash
-docker compose up --build -d
+pnpm run build:docker
+```
+
+### Rebuild rápido após alterações
+
+Evite `docker compose up -d --build` a cada mudança — isso reconstrói **tudo** (~10–15 min).
+
+| Situação | Comando | Tempo típico |
+|----------|---------|--------------|
+| Mudou só o frontend | `pnpm run build:web` | ~2–5 min |
+| Mudou só a API | `pnpm run build:api` | ~2–4 min |
+| Mudou web + API | `pnpm run build:api:web` | ~4–8 min |
+| Mudou `pnpm-lock.yaml` ou Dockerfile | `pnpm run build:docker` | ~10–15 min |
+| Só subir (sem rebuild) | `pnpm run docker:up` | segundos |
+| Mudou schema Prisma | `pnpm run docker:migrate` | ~1 min |
+
+Outros comandos úteis:
+
+```bash
+pnpm run docker:down          # parar stack
+pnpm run docker:ps            # status dos containers
+pnpm run docker:logs:web      # logs do frontend
+pnpm run docker:logs:api      # logs da API
+pnpm run docker:build:web     # só constrói imagem web (sem subir)
 ```
 
 ### Portas (host → container)
