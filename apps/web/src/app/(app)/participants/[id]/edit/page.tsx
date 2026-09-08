@@ -9,6 +9,7 @@ import {
   updateParticipant,
   type ParticipantDetail,
 } from "@/lib/participants";
+import { pageMainNarrowClass } from "@/lib/ui";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -65,7 +66,7 @@ export default function EditParticipantPage({ params }: PageProps) {
   }
 
   return (
-    <main className="mx-auto flex min-h-0 w-full max-w-[var(--shell-max)] flex-col gap-[var(--space-6)] px-[var(--page-pad)] py-[var(--space-8)]">
+    <main className={pageMainNarrowClass}>
       <header className="page-rise border-l-[3px] border-[var(--accent)] pl-[var(--space-4)]">
         <p className="text-[var(--text-sm)] text-[var(--muted)]">
           <Link

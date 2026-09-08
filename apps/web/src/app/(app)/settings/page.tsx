@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchMe } from "@/lib/auth";
 import { fetchSettings, type CongregationSettings } from "@/lib/settings";
+import { pageMainNarrowClass } from "@/lib/ui";
 import { SettingsForm } from "./settings-form";
 
 export default function SettingsPage() {
@@ -41,48 +42,37 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-[50dvh] items-center justify-center px-[var(--page-pad)]">
+      <main className={`${pageMainNarrowClass} items-center`}>
         <p className="text-[var(--text-sm)] text-[var(--muted)]">Carregando…</p>
       </main>
     );
   }
 
   return (
-    <main className="relative flex min-h-0 flex-col px-[var(--page-pad)] py-[var(--space-8)]">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(110% 70% at 90% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 50%), linear-gradient(180deg, var(--surface) 0%, var(--paper) 100%)",
-        }}
-      />
+    <main className={pageMainNarrowClass}>
+      <header className="settings-stage border-l-[3px] border-[var(--accent)] pl-[var(--space-4)]">
+        <p className="font-heading text-[var(--text-display)] leading-tight tracking-tight">
+          Congregação
+        </p>
+        <p className="mt-[var(--space-2)] max-w-[20rem] text-[var(--text-sm)] leading-relaxed text-[var(--muted)]">
+          Nome e dia da reunião usados na programação e no S-140.
+        </p>
+      </header>
 
-      <div className="relative mx-auto flex w-full max-w-[var(--content-max)] flex-col gap-[var(--space-6)]">
-        <header className="settings-stage border-l-[3px] border-[var(--accent)] pl-[var(--space-4)]">
-          <p className="font-heading text-[var(--text-display)] leading-tight tracking-tight">
-            Congregação
-          </p>
-          <p className="mt-[var(--space-2)] max-w-[20rem] text-[var(--text-sm)] leading-relaxed text-[var(--muted)]">
-            Nome e dia da reunião usados na programação e no S-140.
-          </p>
-        </header>
+      {loadError ? (
+        <p role="alert" className="text-[var(--text-sm)] text-[var(--danger)]">
+          {loadError}
+        </p>
+      ) : settings ? (
+        <SettingsForm initial={settings} />
+      ) : null}
 
-        {loadError ? (
-          <p role="alert" className="text-[var(--text-sm)] text-[var(--danger)]">
-            {loadError}
-          </p>
-        ) : settings ? (
-          <SettingsForm initial={settings} />
-        ) : null}
-
-        <Link
-          href="/"
-          className="text-[var(--text-sm)] text-[var(--muted)] underline-offset-4 transition-colors hover:text-[var(--accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
-        >
-          Voltar ao início
-        </Link>
-      </div>
+      <Link
+        href="/"
+        className="text-center text-[var(--text-sm)] text-[var(--muted)] underline-offset-4 transition-colors hover:text-[var(--accent)] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+      >
+        Voltar ao início
+      </Link>
     </main>
   );
 }

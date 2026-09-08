@@ -9,6 +9,7 @@ import {
   listScheduleMonths,
   type MonthSummary,
 } from "@/lib/schedule";
+import { btnOutline, pageMainClass } from "@/lib/ui";
 
 function groupMonths(months: MonthSummary[]) {
   const planning = months
@@ -41,7 +42,7 @@ function MonthList({
         <li key={month.yearMonth}>
           <Link
             href={month.href}
-            className={`flex min-h-[44px] items-center justify-between gap-[var(--space-3)] rounded-[var(--radius-md)] border px-[var(--space-3)] py-[var(--space-3)] transition-colors hover:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] ${
+            className={`flex min-h-[44px] items-center justify-between gap-[var(--space-3)] rounded-[var(--radius-md)] border px-[var(--space-3)] py-[var(--space-3)] transition-[border-color,box-shadow,transform] duration-150 hover:-translate-y-px hover:shadow-[var(--shadow-sm)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] ${
               month.isCurrent
                 ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))]"
                 : "border-[var(--line)] bg-[var(--surface)]"
@@ -90,81 +91,68 @@ export default function ScheduleIndexPage() {
   const { planning, past } = useMemo(() => groupMonths(months), [months]);
 
   return (
-    <main className="relative flex flex-col px-[var(--page-pad)] py-[var(--space-8)]">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(110% 70% at 10% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 55%), linear-gradient(180deg, var(--surface) 0%, var(--paper) 100%)",
-        }}
-      />
+    <main className={`${pageMainClass} page-rise`}>
+      <header className="border-l-[3px] border-[var(--accent)] pl-[var(--space-4)]">
+        <h1 className="font-heading text-[var(--text-display)] leading-tight tracking-tight">
+          Designações
+        </h1>
+        <p className="mt-[var(--space-2)] max-w-[28rem] text-[var(--text-sm)] leading-relaxed text-[var(--muted)]">
+          Planejamento do mês atual e dos próximos seis meses. Meses anteriores
+          permanecem disponíveis para consulta e edição.
+        </p>
+      </header>
 
-      <div className="relative mx-auto flex w-full max-w-[var(--shell-max)] flex-col gap-[var(--space-6)]">
-        <header className="border-l-[3px] border-[var(--accent)] pl-[var(--space-4)]">
-          <h1 className="font-heading text-[var(--text-display)] leading-tight tracking-tight">
-            Designações
-          </h1>
-          <p className="mt-[var(--space-2)] max-w-[28rem] text-[var(--text-sm)] leading-relaxed text-[var(--muted)]">
-            Planejamento do mês atual e dos próximos seis meses. Meses anteriores
-            permanecem disponíveis para consulta e edição.
-          </p>
-        </header>
+      {loading ? (
+        <p className="text-[var(--text-sm)] text-[var(--muted)]">
+          Preparando meses…
+        </p>
+      ) : null}
 
-        {loading ? (
-          <p className="text-[var(--text-sm)] text-[var(--muted)]">
-            Preparando meses…
-          </p>
-        ) : null}
-
-        {error ? (
-          <div
-            role="alert"
-            className="flex flex-col gap-[var(--space-3)] rounded-[var(--radius-md)] border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--surface))] px-[var(--space-4)] py-[var(--space-3)]"
-          >
-            <p className="text-[var(--text-sm)] text-[var(--danger)]">{error}</p>
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="self-start rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-3)] py-[var(--space-2)] text-[var(--text-sm)] text-[var(--ink)] transition-colors hover:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
-            >
+      {error ? (
+        <div
+          role="alert"
+          className="section-card flex flex-col gap-[var(--space-3)]"
+        >
+          <p className="text-[var(--text-sm)] text-[var(--danger)]">{error}</p>
+          <div className="btn-row">
+            <button type="button" onClick={() => void load()} className={btnOutline}>
               Tentar novamente
             </button>
           </div>
-        ) : null}
+        </div>
+      ) : null}
 
-        {!loading && !error ? (
-          <>
-            <section aria-labelledby="planning-heading">
+      {!loading && !error ? (
+        <div className="page-rise-delay flex flex-col gap-[var(--space-6)]">
+          <section aria-labelledby="planning-heading">
+            <h2
+              id="planning-heading"
+              className="mb-[var(--space-3)] font-heading text-[var(--text-lg)]"
+            >
+              Planejamento
+            </h2>
+            <MonthList
+              months={planning}
+              emptyMessage="Nenhum mês no horizonte de planejamento."
+            />
+          </section>
+
+          {past.length > 0 ? (
+            <section aria-labelledby="past-heading">
               <h2
-                id="planning-heading"
+                id="past-heading"
                 className="mb-[var(--space-3)] font-heading text-[var(--text-lg)]"
               >
-                Planejamento
+                Meses anteriores
               </h2>
               <MonthList
-                months={planning}
-                emptyMessage="Nenhum mês no horizonte de planejamento."
+                months={past}
+                emptyMessage="Nenhum mês anterior registrado."
               />
             </section>
-
-            {past.length > 0 ? (
-              <section aria-labelledby="past-heading">
-                <h2
-                  id="past-heading"
-                  className="mb-[var(--space-3)] font-heading text-[var(--text-lg)]"
-                >
-                  Meses anteriores
-                </h2>
-                <MonthList
-                  months={past}
-                  emptyMessage="Nenhum mês anterior registrado."
-                />
-              </section>
-            ) : null}
-          </>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      ) : null}
     </main>
   );
 }

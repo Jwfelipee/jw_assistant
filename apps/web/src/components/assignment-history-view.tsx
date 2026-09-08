@@ -9,7 +9,7 @@ import {
   formatDateBr,
   type HistoryItem,
 } from "@/lib/schedule";
-import { btnOutline, btnPrimary, btnSecondary, fieldClass } from "@/lib/ui";
+import { btnOutline, btnPrimary, btnRowClass, btnSecondary, fieldClass } from "@/lib/ui";
 
 type Filters = {
   q: string;
@@ -158,7 +158,7 @@ export function AssignmentHistoryView() {
             ))}
           </select>
         </label>
-        <div className="flex flex-wrap gap-[var(--space-3)]">
+        <div className={btnRowClass}>
           <button type="submit" className={btnPrimary} disabled={loading}>
             Filtrar
           </button>

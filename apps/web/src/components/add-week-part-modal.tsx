@@ -4,7 +4,12 @@ import { FormEvent, useEffect, useId, useState } from "react";
 import { PartTopic } from "@jw/shared";
 import { TOPIC_LABELS } from "@/lib/schedule";
 import type { PartTypeDto } from "@/lib/catalog";
-import { btnOutline, btnPrimary, fieldClass } from "@/lib/ui";
+import {
+  btnOutline,
+  btnPrimary,
+  btnRowClass,
+  fieldClass,
+} from "@/lib/ui";
 
 export type AddWeekPartModalProps = {
   open: boolean;
@@ -60,20 +65,17 @@ export function AddWeekPartModal({
       }}
     >
       <div
-        className="absolute inset-0 bg-[color-mix(in_srgb,var(--ink)_40%,transparent)]"
+        className="modal-backdrop absolute inset-0 bg-[color-mix(in_srgb,var(--ink)_40%,transparent)]"
         aria-hidden="true"
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-10 w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-[var(--space-5)] shadow-[var(--shadow-md)]"
+        className="modal-panel relative z-10 w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-[var(--space-5)] shadow-[var(--shadow-md)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2
-          id={titleId}
-          className="font-heading text-[var(--text-lg)]"
-        >
+        <h2 id={titleId} className="font-heading text-[var(--text-lg)]">
           Adicionar parte — {TOPIC_LABELS[topic]}
         </h2>
         <form
@@ -107,14 +109,7 @@ export function AddWeekPartModal({
               disabled={pending}
             />
           </label>
-          <div className="mt-[var(--space-2)] flex flex-wrap gap-[var(--space-3)]">
-            <button
-              type="submit"
-              className={btnPrimary}
-              disabled={pending || !partTypeId}
-            >
-              {pending ? "Adicionando…" : "Adicionar"}
-            </button>
+          <div className={`${btnRowClass} mt-[var(--space-2)]`}>
             <button
               type="button"
               className={btnOutline}
@@ -122,6 +117,13 @@ export function AddWeekPartModal({
               onClick={onClose}
             >
               Cancelar
+            </button>
+            <button
+              type="submit"
+              className={btnPrimary}
+              disabled={pending || !partTypeId}
+            >
+              {pending ? "Adicionando…" : "Adicionar"}
             </button>
           </div>
         </form>

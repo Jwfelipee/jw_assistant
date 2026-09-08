@@ -10,6 +10,7 @@ import {
   updatePartType,
   type PartTypeDto,
 } from "@/lib/catalog";
+import { btnPrimaryLg, btnRowClass, btnSecondary } from "@/lib/ui";
 
 type SexChoice = "MALE" | "FEMALE" | "BOTH";
 
@@ -354,11 +355,11 @@ export function CatalogClient() {
             <p className="text-[var(--text-sm)] text-[var(--accent)]">{notice}</p>
           ) : null}
 
-          <div className="flex flex-wrap gap-[var(--space-3)]">
+          <div className={btnRowClass}>
             <button
               type="submit"
               disabled={pending || !form.label.trim()}
-              className="rounded-[var(--radius-md)] bg-[var(--accent)] px-[var(--space-4)] py-[var(--space-3)] text-[var(--text-base)] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60"
+              className={btnPrimaryLg}
             >
               {pending
                 ? "Salvando…"
@@ -371,7 +372,7 @@ export function CatalogClient() {
                 type="button"
                 disabled={pending}
                 onClick={resetForm}
-                className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-4)] py-[var(--space-3)] text-[var(--text-sm)] text-[var(--ink)] transition-colors hover:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60"
+                className={btnSecondary}
               >
                 Cancelar
               </button>
