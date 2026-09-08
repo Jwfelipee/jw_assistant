@@ -144,7 +144,7 @@ export function ParticipantAbsencesSection({
         <div>
           <h2
             id="absences-heading"
-            className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
+            className="font-heading text-[var(--text-lg)]"
           >
             Ausências
           </h2>

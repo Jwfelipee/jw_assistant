@@ -14,6 +14,7 @@ import {
   formatYearMonthLabel,
   type NextMonthInfo,
 } from "@/lib/schedule";
+import { btnOutline, btnPrimary, btnSecondary, sectionCardClass } from "@/lib/ui";
 
 export default function HomePage() {
   const router = useRouter();
@@ -111,7 +112,7 @@ export default function HomePage() {
     <main className="mx-auto flex w-full max-w-[var(--shell-max)] flex-col gap-[var(--space-6)] px-[var(--page-pad)] py-[var(--space-8)]">
       <header className="flex items-start justify-between gap-[var(--space-4)] border-l-[3px] border-[var(--accent)] pl-[var(--space-4)]">
         <div>
-          <h1 className="font-[family-name:var(--font-brand)] text-[var(--text-xl)] font-semibold text-[var(--ink)]">
+          <h1 className="font-heading text-[var(--text-xl)]">
             Assistente S-140
           </h1>
           <p className="mt-[var(--space-2)] text-[var(--text-sm)] text-[var(--muted)]">
@@ -122,7 +123,7 @@ export default function HomePage() {
           href="/settings"
           aria-label="Configurações"
           title="Configurações"
-          className="shrink-0 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-3)] py-[var(--space-2)] text-[var(--text-sm)] text-[var(--ink)] transition-colors hover:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+          className={`${btnSecondary} shrink-0`}
         >
           Configurações
         </Link>
@@ -135,11 +136,11 @@ export default function HomePage() {
 
       <section
         aria-labelledby="next-month-heading"
-        className="border-t border-[var(--line)] pt-[var(--space-5)]"
+        className={sectionCardClass}
       >
         <h2
           id="next-month-heading"
-          className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
+          className="font-heading text-[var(--text-lg)]"
         >
           Próximo mês a programar
         </h2>
@@ -162,7 +163,7 @@ export default function HomePage() {
             </p>
             <Link
               href={nextMonth.href}
-              className="mt-[var(--space-4)] inline-flex rounded-[var(--radius-md)] bg-[var(--accent)] px-[var(--space-4)] py-[var(--space-3)] text-[var(--text-sm)] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+              className={`${btnPrimary} mt-[var(--space-4)] px-[var(--space-4)] py-[var(--space-3)]`}
             >
               Programar próximo mês
             </Link>
@@ -176,11 +177,11 @@ export default function HomePage() {
 
       <section
         aria-labelledby="absence-alerts-heading"
-        className="border-t border-[var(--line)] pt-[var(--space-5)]"
+        className={sectionCardClass}
       >
         <h2
           id="absence-alerts-heading"
-          className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
+          className="font-heading text-[var(--text-lg)]"
         >
           Ausências encerradas
         </h2>
@@ -225,13 +226,13 @@ export default function HomePage() {
                     type="button"
                     disabled={alertActionId === alert.id}
                     onClick={() => void onReactivate(alert)}
-                    className="rounded-[var(--radius-md)] bg-[var(--accent)] px-[var(--space-3)] py-[var(--space-2)] text-[var(--text-sm)] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60"
+                    className={btnPrimary}
                   >
                     {alertActionId === alert.id ? "Reativando…" : "Reativar"}
                   </button>
                   <Link
                     href={`/participants/${alert.participantId}?newAbsence=1`}
-                    className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-3)] py-[var(--space-2)] text-[var(--text-sm)] text-[var(--ink)] transition-colors hover:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+                    className={btnSecondary}
                   >
                     Novo período
                   </Link>
@@ -243,19 +244,12 @@ export default function HomePage() {
       </section>
 
       <nav className="flex flex-col gap-[var(--space-3)]" aria-label="Atalhos">
-        <Link
-          href="/catalogo"
-          className="self-start rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-4)] py-[var(--space-3)] text-[var(--text-sm)] text-[var(--ink)] transition-colors hover:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
-        >
+        <Link href="/catalogo" className={`${btnSecondary} self-start px-[var(--space-4)] py-[var(--space-3)]`}>
           Catálogo Faça Seu Melhor
         </Link>
       </nav>
 
-      <button
-        type="button"
-        onClick={onLogout}
-        className="self-start rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-4)] py-[var(--space-3)] text-[var(--text-sm)] text-[var(--ink)] transition-colors hover:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
-      >
+      <button type="button" onClick={onLogout} className={`${btnOutline} self-start px-[var(--space-4)] py-[var(--space-3)]`}>
         Sair
       </button>
     </main>

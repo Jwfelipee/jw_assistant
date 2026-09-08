@@ -94,7 +94,7 @@ export function MonthArchiveList() {
         <section key={year} aria-labelledby={`archive-year-${year}`}>
           <h2
             id={`archive-year-${year}`}
-            className="mb-[var(--space-2)] font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
+            className="mb-[var(--space-2)] font-heading text-[var(--text-lg)]"
           >
             {year}
           </h2>

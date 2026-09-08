@@ -17,6 +17,7 @@ import {
   type EligibleParticipantsResult,
   type IneligibleVisible,
 } from "@/lib/schedule";
+import { fieldClass } from "@/lib/ui";
 
 export type ParticipantPickerProps = {
   slotId: string;
@@ -27,8 +28,7 @@ export type ParticipantPickerProps = {
   onSelect: (participantId: string) => void;
 };
 
-const fieldClass =
-  "w-full min-h-[44px] rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-3)] py-[var(--space-2)] text-[var(--text-base)] text-[var(--ink)] outline-none transition-[border-color,box-shadow] focus:border-[var(--focus-ring)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--focus-ring)_28%,transparent)] disabled:cursor-not-allowed disabled:opacity-60";
+const pickerFieldClass = `${fieldClass} min-h-[44px] text-[var(--text-base)] disabled:cursor-not-allowed disabled:opacity-60`;
 
 function normalizeForSearch(text: string): string {
   return text
@@ -211,7 +211,7 @@ export function ParticipantPicker({
             ? `${listboxId}-option-${highlightIndex}`
             : undefined
         }
-        className={fieldClass}
+        className={pickerFieldClass}
         value={displayValue}
         placeholder="Buscar participante…"
         disabled={isDisabled}

@@ -24,6 +24,14 @@ import {
   type WeekPartView,
   type WeekView,
 } from "@/lib/schedule";
+import {
+  btnDangerOutline,
+  btnOutline,
+  btnPrimary,
+  btnSecondary,
+  fieldClass,
+  sectionCardClass,
+} from "@/lib/ui";
 
 type PageProps = {
   params: Promise<{ yearMonth: string; weekId: string }>;
@@ -35,15 +43,6 @@ const TOPIC_ORDER: PartTopic[] = [
   PartTopic.MINISTRY,
   PartTopic.CHRISTIAN_LIFE,
 ];
-
-const fieldClass =
-  "w-full rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-3)] py-[var(--space-2)] text-[var(--text-sm)] text-[var(--ink)] outline-none transition-[border-color,box-shadow] focus:border-[var(--focus-ring)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--focus-ring)_28%,transparent)]";
-
-const btnPrimary =
-  "rounded-[var(--radius-md)] bg-[var(--accent)] px-[var(--space-3)] py-[var(--space-2)] text-[var(--text-sm)] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60";
-
-const btnGhost =
-  "rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-3)] py-[var(--space-2)] text-[var(--text-sm)] text-[var(--ink)] transition-colors hover:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60";
 
 type PendingConfirm = {
   slotId: string;
@@ -318,7 +317,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
             <p className="font-medium text-[var(--ink)]">{part.partTypeLabel}</p>
             {editingPartId === part.id ? (
               <div className="mt-[var(--space-2)] flex flex-col gap-[var(--space-2)]">
-                <label className="text-[var(--text-sm)] text-[var(--muted)]">
+                <label className="text-label">
                   Tema
                   <input
                     className={`${fieldClass} mt-[var(--space-1)]`}
@@ -347,7 +346,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
                   </button>
                   <button
                     type="button"
-                    className={btnGhost}
+                    className={btnOutline}
                     disabled={savingPartId === part.id}
                     onClick={cancelEditingPart}
                   >
@@ -386,7 +385,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
           {part.deletable ? (
             <button
               type="button"
-              className={btnGhost}
+              className={btnDangerOutline}
               onClick={() => void onRemovePart(part.id)}
             >
               Remover
@@ -401,7 +400,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
                 {ROLE_LABELS[slot.role]}
                 {slot.participantName ? ` — ${slot.participantName}` : " — em aberto"}
               </p>
-              <label className="text-[var(--text-sm)] text-[var(--muted)]">
+              <label className="text-label">
                 Participante
                 <div className="mt-[var(--space-1)]">
                   <ParticipantPicker
@@ -419,7 +418,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
               <div className="flex flex-wrap gap-[var(--space-2)]">
                 <button
                   type="button"
-                  className={btnGhost}
+                  className={btnPrimary}
                   disabled={busySlotId === slot.id}
                   onClick={() => void onSuggest(part, slot.role, slot.id)}
                 >
@@ -428,7 +427,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
                 {slot.participantId ? (
                   <button
                     type="button"
-                    className={btnGhost}
+                    className={btnDangerOutline}
                     disabled={busySlotId === slot.id}
                     onClick={() => void onUnassign(slot.id)}
                   >
@@ -445,7 +444,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
 
   function renderStaticPart(part: WeekPartView) {
     return (
-      <li key={part.id} className="flex flex-col gap-[var(--space-3)]">
+      <li key={part.id} className="section-card flex flex-col gap-[var(--space-3)]">
         {renderPartBody(part)}
       </li>
     );
@@ -470,7 +469,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
             {formatYearMonthLabel(yearMonth)}
           </Link>
         </p>
-        <h1 className="mt-[var(--space-1)] font-[family-name:var(--font-brand)] text-[var(--text-xl)] font-semibold text-[var(--ink)]">
+        <h1 className="mt-[var(--space-1)] font-heading text-[var(--text-xl)]">
           {week
             ? `Reunião ${formatDateBr(week.meetingDate)}`
             : "Semana"}
@@ -497,11 +496,11 @@ export default function WeekSchedulePage({ params }: PageProps) {
       {pendingConfirm ? (
         <section
           aria-labelledby="alerts-heading"
-          className="border border-[var(--line)] bg-[var(--surface)] p-[var(--space-4)]"
+          className={sectionCardClass}
         >
           <h2
             id="alerts-heading"
-            className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
+            className="font-heading text-[var(--text-lg)]"
           >
             Confirmar apesar dos alertas
           </h2>
@@ -526,7 +525,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
             </button>
             <button
               type="button"
-              className={btnGhost}
+              className={btnOutline}
               onClick={() => setPendingConfirm(null)}
             >
               Cancelar
@@ -539,12 +538,12 @@ export default function WeekSchedulePage({ params }: PageProps) {
         <section
           key={group.topic}
           aria-labelledby={`topic-${group.topic}`}
-          className="border-t border-[var(--line)] pt-[var(--space-5)]"
+          className="border-t border-[var(--line)] pt-[var(--space-5)] first:border-t-0 first:pt-0"
         >
           <div className="flex flex-wrap items-center justify-between gap-[var(--space-3)]">
             <h2
               id={`topic-${group.topic}`}
-              className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
+              className="font-heading text-[var(--text-lg)]"
             >
               {TOPIC_LABELS[group.topic]}
             </h2>
@@ -552,7 +551,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
             group.topic === PartTopic.CHRISTIAN_LIFE ? (
               <button
                 type="button"
-                className={btnGhost}
+                className={btnSecondary}
                 onClick={() =>
                   setAddModalTopic(
                     group.topic as

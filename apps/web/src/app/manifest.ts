@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "Programação da reunião do meio de semana — designações S-140",
     start_url: "/",
     display: "standalone",
-    background_color: "#e8ecf0",
-    theme_color: "#2f6b62",
+    background_color: "#cdd5de",
+    theme_color: "#2a6b5f",
     orientation: "portrait-primary",
     lang: "pt-BR",
     icons: [

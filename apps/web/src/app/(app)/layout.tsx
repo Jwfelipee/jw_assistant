@@ -1,8 +1,7 @@
 import { BottomNav } from "@/components/bottom-nav";
 
 /**
- * Shell autenticado: conteúdo com max-width confortável + espaço para bottom nav
- * (safe-area iOS). Login fica fora deste grupo de rotas.
+ * Shell autenticado: conteúdo branco sobre fundo da plataforma + bottom nav.
  */
 export default function AppShellLayout({
   children,
@@ -10,9 +9,9 @@ export default function AppShellLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="relative min-h-dvh">
+    <div className="relative min-h-dvh bg-[var(--paper)]">
       <div
-        className="mx-auto w-full max-w-[var(--shell-max)]"
+        className="app-content-shell mx-auto w-full max-w-[var(--shell-max)]"
         style={{
           paddingBottom:
             "calc(var(--nav-clearance) + env(safe-area-inset-bottom, 0px))",

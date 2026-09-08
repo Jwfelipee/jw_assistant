@@ -1,16 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Literata, Manrope } from "next/font/google";
+import { Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 
-const brand = Literata({
-  variable: "--font-brand",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const ui = Manrope({
+const ui = Source_Sans_3({
   variable: "--font-ui",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -44,7 +39,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2f6b62",
+  themeColor: "#2a6b5f",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -57,9 +52,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${brand.variable} ${ui.variable} antialiased`}>
-        {children}
-      </body>
+      <body className={`${ui.variable} antialiased`}>{children}</body>
     </html>
   );
 }

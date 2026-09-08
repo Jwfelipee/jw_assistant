@@ -19,7 +19,7 @@ export default function NewParticipantPage() {
             Participantes
           </Link>
         </p>
-        <h1 className="mt-[var(--space-1)] font-[family-name:var(--font-brand)] text-[var(--text-xl)] font-semibold text-[var(--ink)]">
+        <h1 className="mt-[var(--space-1)] font-heading text-[var(--text-xl)]">
           Novo participante
         </h1>
         <p className="mt-[var(--space-2)] text-[var(--text-sm)] text-[var(--muted)]">

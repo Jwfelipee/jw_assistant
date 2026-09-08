@@ -9,15 +9,7 @@ import {
   formatDateBr,
   type HistoryItem,
 } from "@/lib/schedule";
-
-const fieldClass =
-  "w-full rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-3)] py-[var(--space-2)] text-[var(--text-sm)] text-[var(--ink)] outline-none transition-[border-color,box-shadow] focus:border-[var(--focus-ring)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--focus-ring)_28%,transparent)]";
-
-const btnPrimary =
-  "rounded-[var(--radius-md)] bg-[var(--accent)] px-[var(--space-3)] py-[var(--space-2)] text-[var(--text-sm)] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60";
-
-const btnGhost =
-  "rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-3)] py-[var(--space-2)] text-[var(--text-sm)] text-[var(--ink)] transition-colors hover:border-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60";
+import { btnOutline, btnPrimary, btnSecondary, fieldClass } from "@/lib/ui";
 
 type Filters = {
   q: string;
@@ -170,7 +162,7 @@ export function AssignmentHistoryView() {
           <button type="submit" className={btnPrimary} disabled={loading}>
             Filtrar
           </button>
-          <button type="button" className={btnGhost} onClick={onClear}>
+          <button type="button" className={btnOutline} onClick={onClear}>
             Limpar
           </button>
         </div>
@@ -223,7 +215,7 @@ export function AssignmentHistoryView() {
               <div className="mt-[var(--space-4)] flex items-center justify-between gap-[var(--space-3)]">
                 <button
                   type="button"
-                  className={btnGhost}
+                  className={btnSecondary}
                   disabled={page <= 1 || loading}
                   onClick={() => void load(applied, page - 1)}
                 >
@@ -234,7 +226,7 @@ export function AssignmentHistoryView() {
                 </span>
                 <button
                   type="button"
-                  className={btnGhost}
+                  className={btnSecondary}
                   disabled={page >= totalPages || loading}
                   onClick={() => void load(applied, page + 1)}
                 >

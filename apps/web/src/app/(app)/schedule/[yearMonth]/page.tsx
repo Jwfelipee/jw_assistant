@@ -102,7 +102,7 @@ export default function ScheduleMonthPage() {
           >
             ← Todos os meses
           </Link>
-          <p className="font-[family-name:var(--font-brand)] text-[var(--text-display)] font-semibold leading-tight tracking-tight text-[var(--ink)]">
+          <p className="font-heading text-[var(--text-display)] leading-tight tracking-tight">
             {valid ? formatYearMonthLabel(yearMonth) : "Mês"}
           </p>
           <p className="mt-[var(--space-2)] max-w-[28rem] text-[var(--text-sm)] leading-relaxed text-[var(--muted)]">
