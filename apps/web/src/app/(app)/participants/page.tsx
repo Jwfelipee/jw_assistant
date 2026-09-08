@@ -8,6 +8,7 @@ import {
   listParticipants,
   type ParticipantListItem,
 } from "@/lib/participants";
+import { btnPrimary, pageMainClass } from "@/lib/ui";
 
 export default function ParticipantsPage() {
   const [items, setItems] = useState<ParticipantListItem[] | null>(null);
@@ -35,7 +36,7 @@ export default function ParticipantsPage() {
   }, []);
 
   return (
-    <main className="mx-auto flex min-h-0 w-full max-w-[var(--shell-max)] flex-col gap-[var(--space-6)] px-[var(--page-pad)] py-[var(--space-8)]">
+    <main className={pageMainClass}>
       <header className="page-rise flex items-start justify-between gap-[var(--space-4)] border-l-[3px] border-[var(--accent)] pl-[var(--space-4)]">
         <div>
           <p className="text-[var(--text-sm)] text-[var(--muted)]">
@@ -50,10 +51,7 @@ export default function ParticipantsPage() {
             Participantes
           </h1>
         </div>
-        <Link
-          href="/participants/new"
-          className="shrink-0 rounded-[var(--radius-md)] bg-[var(--accent)] px-[var(--space-3)] py-[var(--space-2)] text-[var(--text-sm)] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
-        >
+        <Link href="/participants/new" className={`${btnPrimary} shrink-0`}>
           Novo
         </Link>
       </header>
@@ -91,7 +89,7 @@ export default function ParticipantsPage() {
             <li key={item.id}>
               <Link
                 href={`/participants/${item.id}`}
-                className="flex flex-col gap-[var(--space-1)] py-[var(--space-4)] transition-colors hover:bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus-ring)]"
+                className="list-row flex flex-col gap-[var(--space-1)] py-[var(--space-4)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus-ring)]"
               >
                 <span className="text-[var(--text-base)] font-medium text-[var(--ink)]">
                   {item.name}

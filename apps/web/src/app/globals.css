@@ -113,6 +113,21 @@ body {
   background: var(--surface);
   box-shadow: var(--shadow-md);
   min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Page layout */
+.page-main {
+  flex: 1;
+  width: 100%;
+}
+
+.page-main--center {
+  justify-content: center;
+  min-height: calc(
+    100dvh - var(--nav-clearance) - env(safe-area-inset-bottom, 0px)
+  );
 }
 
 /* Cards & sections */
@@ -135,16 +150,24 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border: none;
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
   font-weight: 500;
   line-height: 1.25;
+  text-decoration: none;
   transition:
-    background-color 150ms ease,
-    border-color 150ms ease,
-    color 150ms ease;
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 120ms ease,
+    box-shadow 180ms ease;
   cursor: pointer;
+}
+
+a.btn {
+  text-decoration: none;
 }
 
 .btn:focus-visible {
@@ -157,13 +180,32 @@ body {
   cursor: not-allowed;
 }
 
-.btn-primary {
-  background: var(--accent);
-  color: var(--on-accent);
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
-.btn-primary:hover:not(:disabled) {
+.btn-lg {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.btn-primary,
+a.btn-primary {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled),
+a.btn-primary:hover {
   background: var(--accent-hover);
+  color: #ffffff;
 }
 
 .btn-secondary {
@@ -255,4 +297,55 @@ body {
 
 .catalog-stage-delay {
   animation: login-rise 480ms ease-out 80ms both;
+}
+
+/* Modal */
+@keyframes modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-backdrop {
+  animation: modal-backdrop-in 220ms ease-out both;
+}
+
+.modal-panel {
+  animation: modal-panel-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* List rows — leve feedback ao toque */
+.list-row {
+  transition: background-color 150ms ease;
+}
+
+.list-row:hover {
+  background: var(--surface-subtle);
+}
+
+@media (min-width: 640px) {
+  @keyframes modal-panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
 }

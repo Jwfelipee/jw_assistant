@@ -16,13 +16,13 @@ import {
   type ParticipantDetail,
   type ParticipantListItem,
 } from "@/lib/participants";
+import { btnPrimaryLg, btnRowClass, fieldClass } from "@/lib/ui";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-const fieldClass =
-  "rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-3)] py-[var(--space-3)] text-[var(--text-base)] text-[var(--ink)] outline-none transition-[border-color,box-shadow] focus:border-[var(--focus-ring)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--focus-ring)_28%,transparent)]";
+const localFieldClass = `${fieldClass} py-[var(--space-3)] text-[var(--text-base)]`;
 
 export default function ParticipantDetailPage({ params }: PageProps) {
   const { id } = use(params);
@@ -263,7 +263,7 @@ export default function ParticipantDetailPage({ params }: PageProps) {
               required
               value={otherId}
               onChange={(e) => setOtherId(e.target.value)}
-              className={fieldClass}
+              className={localFieldClass}
             >
               <option value="">Selecione…</option>
               {associationOptions.map((p) => (
@@ -285,7 +285,7 @@ export default function ParticipantDetailPage({ params }: PageProps) {
               required
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className={fieldClass}
+              className={localFieldClass}
               placeholder="Ex.: cônjuges"
             />
           </div>
@@ -294,13 +294,15 @@ export default function ParticipantDetailPage({ params }: PageProps) {
               {assocError}
             </p>
           ) : null}
-          <button
-            type="submit"
-            disabled={assocPending || associationOptions.length === 0}
-            className="self-start rounded-[var(--radius-md)] bg-[var(--accent)] px-[var(--space-4)] py-[var(--space-3)] text-[var(--text-sm)] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60"
-          >
-            {assocPending ? "Associando…" : "Adicionar associação"}
-          </button>
+          <div className={btnRowClass}>
+            <button
+              type="submit"
+              disabled={assocPending || associationOptions.length === 0}
+              className={btnPrimaryLg}
+            >
+              {assocPending ? "Associando…" : "Adicionar associação"}
+            </button>
+          </div>
         </form>
       </section>
 

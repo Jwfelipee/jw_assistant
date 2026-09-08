@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { loginRequest } from "@/lib/auth";
+import { btnPrimaryLg, btnRowClass } from "@/lib/ui";
 
 export function LoginForm() {
   const router = useRouter();
@@ -78,13 +79,11 @@ export function LoginForm() {
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="mt-[var(--space-2)] rounded-[var(--radius-md)] bg-[var(--accent)] px-[var(--space-4)] py-[var(--space-3)] text-[var(--text-base)] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60"
-      >
-        {pending ? "Entrando…" : "Entrar"}
-      </button>
+      <div className={btnRowClass}>
+        <button type="submit" disabled={pending} className={btnPrimaryLg}>
+          {pending ? "Entrando…" : "Entrar"}
+        </button>
+      </div>
     </form>
   );
 }

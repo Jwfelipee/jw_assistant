@@ -28,6 +28,7 @@ import {
   btnDangerOutline,
   btnOutline,
   btnPrimary,
+  btnRowClass,
   btnSecondary,
   fieldClass,
   sectionCardClass,
@@ -335,7 +336,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
                     {partTitleError}
                   </p>
                 ) : null}
-                <div className="flex flex-wrap gap-[var(--space-2)]">
+                <div className={btnRowClass}>
                   <button
                     type="button"
                     className={btnPrimary}
@@ -415,7 +416,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
                   />
                 </div>
               </label>
-              <div className="flex flex-wrap gap-[var(--space-2)]">
+              <div className={btnRowClass}>
                 <button
                   type="button"
                   className={btnPrimary}
@@ -514,7 +515,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
               </li>
             ))}
           </ul>
-          <div className="mt-[var(--space-4)] flex flex-wrap gap-[var(--space-3)]">
+          <div className={`${btnRowClass} mt-[var(--space-4)]`}>
             <button
               type="button"
               className={btnPrimary}

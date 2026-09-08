@@ -9,9 +9,7 @@ import {
   reactivateAbsence,
   type AbsenceView,
 } from "@/lib/absences";
-
-const fieldClass =
-  "rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-3)] py-[var(--space-3)] text-[var(--text-base)] text-[var(--ink)] outline-none transition-[border-color,box-shadow] focus:border-[var(--focus-ring)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--focus-ring)_28%,transparent)]";
+import { btnOutline, btnPrimaryLg, btnRowClass, fieldClass } from "@/lib/ui";
 
 type Props = {
   participantId: string;
@@ -239,11 +237,11 @@ export function ParticipantAbsencesSection({
             </p>
           ) : null}
 
-          <div className="flex flex-wrap gap-[var(--space-3)]">
+          <div className={btnRowClass}>
             <button
               type="submit"
               disabled={pending}
-              className="rounded-[var(--radius-md)] bg-[var(--accent)] px-[var(--space-4)] py-[var(--space-3)] text-[var(--text-sm)] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60"
+              className={btnPrimaryLg}
             >
               {pending ? "Salvando…" : "Salvar ausência"}
             </button>
@@ -253,7 +251,7 @@ export function ParticipantAbsencesSection({
                 setShowForm(false);
                 setFormError(null);
               }}
-              className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] px-[var(--space-4)] py-[var(--space-3)] text-[var(--text-sm)] text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+              className={btnOutline}
             >
               Cancelar
             </button>

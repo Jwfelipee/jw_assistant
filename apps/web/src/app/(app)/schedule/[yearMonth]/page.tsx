@@ -11,6 +11,7 @@ import {
   formatYearMonthLabel,
   type MonthView,
 } from "@/lib/schedule";
+import { btnPrimaryLg, pageMainCenterClass } from "@/lib/ui";
 
 const YEAR_MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -84,18 +85,8 @@ export default function ScheduleMonthPage() {
   }
 
   return (
-    <main className="relative flex flex-col px-[var(--page-pad)] py-[var(--space-8)]">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(110% 70% at 10% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 55%), linear-gradient(180deg, var(--surface) 0%, var(--paper) 100%)",
-        }}
-      />
-
-      <div className="relative mx-auto flex w-full max-w-[var(--shell-max)] flex-col gap-[var(--space-6)]">
-        <header className="border-l-[3px] border-[var(--accent)] pl-[var(--space-4)]">
+    <main className={pageMainCenterClass}>
+      <header className="border-l-[3px] border-[var(--accent)] pl-[var(--space-4)]">
           <Link
             href="/schedule"
             className="mb-[var(--space-2)] inline-flex min-h-[44px] items-center text-[var(--text-sm)] text-[var(--accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
@@ -128,7 +119,7 @@ export default function ScheduleMonthPage() {
               <li key={week.id}>
                 <Link
                   href={`/schedule/${yearMonth}/weeks/${week.id}`}
-                  className="flex items-center justify-between gap-[var(--space-3)] py-[var(--space-3)] text-[var(--ink)] transition-colors hover:text-[var(--accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+                  className="list-row flex items-center justify-between gap-[var(--space-3)] py-[var(--space-3)] text-[var(--ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
                 >
                   <span className="font-medium">
                     Semana de {formatDateBr(week.weekStartDate)}
@@ -146,15 +137,16 @@ export default function ScheduleMonthPage() {
           </p>
         ) : null}
 
-        <button
-          type="button"
-          disabled={!valid || exporting}
-          onClick={() => void onExport()}
-          className="self-start rounded-[var(--radius-md)] bg-[var(--accent)] px-[var(--space-4)] py-[var(--space-3)] text-[var(--text-sm)] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60"
-        >
-          {exporting ? "Gerando PDF…" : "Exportar S-140"}
-        </button>
-      </div>
+        <div className="btn-row">
+          <button
+            type="button"
+            disabled={!valid || exporting}
+            onClick={() => void onExport()}
+            className={btnPrimaryLg}
+          >
+            {exporting ? "Gerando PDF…" : "Exportar S-140"}
+          </button>
+        </div>
     </main>
   );
 }
