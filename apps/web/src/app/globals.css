@@ -1,29 +1,37 @@
 /**
  * Design tokens — Assistente S-140 (programação meio de semana)
  *
- * Domínio: caderno/folha de designações da congregação, mobile-first, pt-BR.
- * Paleta fria (papel de programa + tinta azul), accent sage do salão —
- * evita cream+terracotta, purple SaaS e dark neon.
+ * Mobile-first, pt-BR. Papel frio + cartões brancos + accent sage.
  */
 
 @import "tailwindcss";
 
 :root {
-  /* Color */
-  --ink: #152535;
-  --paper: #e8ecf0;
-  --surface: #f7f9fb;
-  --accent: #2f6b62;
-  --accent-hover: #255750;
-  --muted: #5c6b78;
-  --line: #c5ced6;
-  --danger: #8b3a3a;
-  --focus-ring: #3a7a9c;
-  --on-accent: #f7f9fb;
+  /* Color — contraste reforçado */
+  --ink: #0f1a24;
+  --paper: #cdd5de;
+  --surface: #ffffff;
+  --surface-subtle: #f3f6f9;
+  --accent: #2a6b5f;
+  --accent-hover: #1f5349;
+  --accent-soft: #e3f0ec;
+  --muted: #4a5c6b;
+  --label: #2f3f4d;
+  --line: #a8b6c4;
+  --danger: #a33030;
+  --danger-hover: #872626;
+  --danger-soft: #fdf2f2;
+  --focus-ring: #2d7d9a;
+  --on-accent: #ffffff;
 
   /* Legacy aliases used by Tailwind theme */
   --background: var(--paper);
   --foreground: var(--ink);
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(15, 26, 36, 0.06),
+    0 1px 3px rgba(15, 26, 36, 0.08);
+  --shadow-md: 0 4px 16px rgba(15, 26, 36, 0.1);
 
   /* Type scale */
   --text-xs: 0.75rem;
@@ -42,13 +50,11 @@
   --space-6: 2rem;
   --space-8: 3rem;
   --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  /* Forms / login narrow column */
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
   --content-max: 22rem;
-  /* Primary app shell (lists, schedule, history) */
   --shell-max: 42rem;
   --page-pad: 1.25rem;
-  /* Bottom nav height + breathing room above it */
   --nav-clearance: 4.75rem;
 }
 
@@ -66,7 +72,7 @@
   --color-focus-ring: var(--focus-ring);
   --color-on-accent: var(--on-accent);
   --font-sans: var(--font-ui);
-  --font-display: var(--font-brand);
+  --font-display: var(--font-ui);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -83,10 +89,138 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-ui), system-ui, sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.5;
   overflow-x: clip;
 }
 
-/* Login / settings motion — one orchestrated entrance */
+/* Typography */
+.font-heading {
+  font-family: var(--font-ui), system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.text-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--label);
+}
+
+/* Content shell — cartão branco sobre fundo da plataforma */
+.app-content-shell {
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  min-height: 100dvh;
+}
+
+/* Cards & sections */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.section-card {
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.25;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+  cursor: pointer;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--surface-subtle);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.btn-outline:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--ink);
+  background: var(--surface-subtle);
+}
+
+.btn-danger-outline {
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--line));
+  color: var(--danger);
+}
+
+.btn-danger-outline:hover:not(:disabled) {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+/* Form fields */
+.field-input {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  outline: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.field-input:focus {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 28%, transparent);
+}
+
+/* Login / settings motion */
 @keyframes login-rise {
   from {
     opacity: 0;
@@ -107,7 +241,6 @@ body {
   animation: login-rise 480ms ease-out 80ms both;
 }
 
-/* Page content entrance — reuse same motion language */
 .page-rise {
   animation: login-rise 420ms ease-out both;
 }
@@ -116,7 +249,6 @@ body {
   animation: login-rise 480ms ease-out 80ms both;
 }
 
-/* Catalog page — same soft entrance as login */
 .catalog-stage {
   animation: login-rise 420ms ease-out both;
 }

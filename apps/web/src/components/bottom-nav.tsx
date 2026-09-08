@@ -150,7 +150,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--line)] bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] backdrop-blur-md"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--line)] bg-[var(--surface)] shadow-[0_-2px_12px_rgba(15,26,36,0.08)]"
       style={{
         paddingBottom: "max(0.35rem, env(safe-area-inset-bottom))",
       }}

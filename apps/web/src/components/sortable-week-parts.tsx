@@ -52,7 +52,7 @@ function SortablePartRow({
     <li
       ref={setNodeRef}
       style={style}
-      className="flex flex-col gap-[var(--space-3)]"
+      className="section-card flex flex-col gap-[var(--space-3)]"
     >
       <div className="flex items-start gap-[var(--space-2)]">
         <button

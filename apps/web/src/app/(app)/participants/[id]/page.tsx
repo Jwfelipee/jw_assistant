@@ -153,7 +153,7 @@ export default function ParticipantDetailPage({ params }: PageProps) {
               Participantes
             </Link>
           </p>
-          <h1 className="mt-[var(--space-1)] font-[family-name:var(--font-brand)] text-[var(--text-xl)] font-semibold text-[var(--ink)]">
+          <h1 className="mt-[var(--space-1)] font-heading text-[var(--text-xl)]">
             {participant.name}
           </h1>
           <p className="mt-[var(--space-2)] text-[var(--text-sm)] text-[var(--muted)]">
@@ -178,7 +178,7 @@ export default function ParticipantDetailPage({ params }: PageProps) {
       <section className="page-rise-delay" aria-labelledby="counters-heading">
         <h2
           id="counters-heading"
-          className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
+          className="font-heading text-[var(--text-lg)]"
         >
           Contadores
         </h2>
@@ -194,7 +194,7 @@ export default function ParticipantDetailPage({ params }: PageProps) {
               <dt className="text-[var(--text-sm)] text-[var(--muted)]">
                 {label}
               </dt>
-              <dd className="font-[family-name:var(--font-brand)] text-[var(--text-xl)] tabular-nums text-[var(--ink)]">
+              <dd className="font-heading text-[var(--text-xl)] tabular-nums">
                 {value}
               </dd>
             </div>
@@ -205,7 +205,7 @@ export default function ParticipantDetailPage({ params }: PageProps) {
       <section aria-labelledby="associations-heading">
         <h2
           id="associations-heading"
-          className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
+          className="font-heading text-[var(--text-lg)]"
         >
           Associações
         </h2>
@@ -312,7 +312,7 @@ export default function ParticipantDetailPage({ params }: PageProps) {
       <section aria-labelledby="history-heading">
         <h2
           id="history-heading"
-          className="font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
+          className="font-heading text-[var(--text-lg)]"
         >
           Histórico de designações
         </h2>

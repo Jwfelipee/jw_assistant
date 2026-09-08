@@ -46,7 +46,7 @@ export default function ParticipantsPage() {
               Início
             </Link>
           </p>
-          <h1 className="mt-[var(--space-1)] font-[family-name:var(--font-brand)] text-[var(--text-xl)] font-semibold text-[var(--ink)]">
+          <h1 className="mt-[var(--space-1)] font-heading text-[var(--text-xl)]">
             Participantes
           </h1>
         </div>

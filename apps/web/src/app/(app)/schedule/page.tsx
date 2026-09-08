@@ -102,7 +102,7 @@ export default function ScheduleIndexPage() {
 
       <div className="relative mx-auto flex w-full max-w-[var(--shell-max)] flex-col gap-[var(--space-6)]">
         <header className="border-l-[3px] border-[var(--accent)] pl-[var(--space-4)]">
-          <h1 className="font-[family-name:var(--font-brand)] text-[var(--text-display)] font-semibold leading-tight tracking-tight text-[var(--ink)]">
+          <h1 className="font-heading text-[var(--text-display)] leading-tight tracking-tight">
             Designações
           </h1>
           <p className="mt-[var(--space-2)] max-w-[28rem] text-[var(--text-sm)] leading-relaxed text-[var(--muted)]">
@@ -138,7 +138,7 @@ export default function ScheduleIndexPage() {
             <section aria-labelledby="planning-heading">
               <h2
                 id="planning-heading"
-                className="mb-[var(--space-3)] font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
+                className="mb-[var(--space-3)] font-heading text-[var(--text-lg)]"
               >
                 Planejamento
               </h2>
@@ -152,7 +152,7 @@ export default function ScheduleIndexPage() {
               <section aria-labelledby="past-heading">
                 <h2
                   id="past-heading"
-                  className="mb-[var(--space-3)] font-[family-name:var(--font-brand)] text-[var(--text-lg)] font-semibold text-[var(--ink)]"
+                  className="mb-[var(--space-3)] font-heading text-[var(--text-lg)]"
                 >
                   Meses anteriores
                 </h2>

@@ -60,7 +60,7 @@ export default function SettingsPage() {
 
       <div className="relative mx-auto flex w-full max-w-[var(--content-max)] flex-col gap-[var(--space-6)]">
         <header className="settings-stage border-l-[3px] border-[var(--accent)] pl-[var(--space-4)]">
-          <p className="font-[family-name:var(--font-brand)] text-[var(--text-display)] font-semibold leading-tight tracking-tight text-[var(--ink)]">
+          <p className="font-heading text-[var(--text-display)] leading-tight tracking-tight">
             Congregação
           </p>
           <p className="mt-[var(--space-2)] max-w-[20rem] text-[var(--text-sm)] leading-relaxed text-[var(--muted)]">
