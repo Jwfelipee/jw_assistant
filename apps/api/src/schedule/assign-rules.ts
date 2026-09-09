@@ -165,64 +165,90 @@ export function counterKeyForRole(
   }
 }
 
-/** Maps part type + role + sex to the assignment count category (design D1). */
+/** Maps part type + role + sex to all assignment count categories to increment. */
+export function resolveCountCategories(input: {
+  partTypeCode: string;
+  partTopic: PartTopic;
+  role: AssignmentRole;
+  participantSex: Sex;
+}): AssignmentCountCategory[] {
+  const { partTypeCode, partTopic, role, participantSex } = input;
+
+  if (partTypeCode === 'PRESIDENTE') {
+    return ['presidente'];
+  }
+
+  if (ORACAO_PART_CODES.has(partTypeCode)) {
+    return ['oracao'];
+  }
+
+  if (partTypeCode === STUDY_PART_CODE) {
+    if (role === AssignmentRole.LEITOR) {
+      return ['titular'];
+    }
+    if (role === AssignmentRole.DIRIGENTE) {
+      return ['dirigente'];
+    }
+    return [];
+  }
+
+  if (partTypeCode === 'LEITURA_BIBLIA') {
+    return participantSex === Sex.MALE ? ['ministerio'] : [];
+  }
+
+  if (partTopic === PartTopic.MINISTRY) {
+    if (role === AssignmentRole.TITULAR) {
+      if (participantSex === Sex.FEMALE) {
+        return ['titular', 'ministerio'];
+      }
+      return ['ministerio'];
+    }
+    if (role === AssignmentRole.AJUDANTE) {
+      if (participantSex === Sex.FEMALE) {
+        return ['ajudante', 'ministerio'];
+      }
+      return ['ajudante', 'ministerio'];
+    }
+    return [];
+  }
+
+  if (role === AssignmentRole.AJUDANTE) {
+    return ['ajudante'];
+  }
+
+  if (partTopic === PartTopic.CHRISTIAN_LIFE) {
+    if (role === AssignmentRole.TITULAR) {
+      return ['titular'];
+    }
+    return [];
+  }
+
+  if (role === AssignmentRole.TITULAR) {
+    return ['titular'];
+  }
+
+  if (role === AssignmentRole.DIRIGENTE) {
+    return ['dirigente'];
+  }
+
+  return [];
+}
+
+/** Primary sort/display category for picker and suggestions. */
 export function resolveCountCategory(input: {
   partTypeCode: string;
   partTopic: PartTopic;
   role: AssignmentRole;
   participantSex: Sex;
 }): AssignmentCountCategory | null {
-  const { partTypeCode, partTopic, role, participantSex } = input;
-
-  if (partTypeCode === 'PRESIDENTE') {
-    return 'presidente';
-  }
-
-  if (ORACAO_PART_CODES.has(partTypeCode)) {
-    return 'oracao';
-  }
-
-  if (partTypeCode === STUDY_PART_CODE) {
-    if (role === AssignmentRole.LEITOR) {
-      return 'titular';
-    }
-    if (role === AssignmentRole.DIRIGENTE) {
-      return 'dirigente';
-    }
+  const categories = resolveCountCategories(input);
+  if (categories.length === 0) {
     return null;
   }
-
-  if (role === AssignmentRole.AJUDANTE) {
-    return 'ajudante';
+  if (categories.includes('ministerio')) {
+    return 'ministerio';
   }
-
-  if (partTypeCode === 'LEITURA_BIBLIA') {
-    return participantSex === Sex.MALE ? 'ministerio' : null;
-  }
-
-  if (partTopic === PartTopic.MINISTRY) {
-    if (participantSex === Sex.MALE && role === AssignmentRole.TITULAR) {
-      return 'ministerio';
-    }
-    return null;
-  }
-
-  if (partTopic === PartTopic.CHRISTIAN_LIFE) {
-    if (role === AssignmentRole.TITULAR) {
-      return 'titular';
-    }
-    return null;
-  }
-
-  if (role === AssignmentRole.TITULAR) {
-    return 'titular';
-  }
-
-  if (role === AssignmentRole.DIRIGENTE) {
-    return 'dirigente';
-  }
-
-  return null;
+  return categories[0];
 }
 
 export function counterFieldForCategory(
