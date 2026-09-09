@@ -65,6 +65,39 @@ Parar:
 docker compose down
 ```
 
+## Deploy do frontend na Vercel (API no homelab)
+
+Root Directory do projeto na Vercel: **`apps/web`**.
+
+### Variáveis na Vercel (Production)
+
+| Variável | Exemplo | Observação |
+|----------|---------|------------|
+| `API_ORIGIN` | `https://api.seudominio.com` | URL pública da API (sem `/` no final). Usada no **build** para o rewrite `/api` → backend |
+| `JWT_SECRET` | (igual ao homelab) | Mesmo valor da API; middleware valida o cookie `jw_session` |
+
+Marque ambas para **Production** (e Preview, se usar branches).
+
+### Homelab (só API)
+
+```env
+WEB_ORIGIN=https://seu-app.vercel.app
+COOKIE_SECURE=true
+```
+
+A API precisa estar acessível em HTTPS a partir da internet (proxy reverso ou Cloudflare Tunnel).
+
+### Turbo + monorepo
+
+O `turbo.json` declara `API_ORIGIN` e `JWT_SECRET` em `globalEnv` / `build.env` para o Turbo repassar essas variáveis ao `next build`. Sem isso, o rewrite cai no default `http://localhost:3001` e o app em produção não alcança a API.
+
+Após alterar `API_ORIGIN`, faça **Redeploy** (a URL é fixada no build).
+
+### Verificar deploy
+
+1. Abra o app → login
+2. DevTools → Network: requests em `seu-app.vercel.app/api/...` devem retornar 200 (não 502/connection refused)
+
 ## Desenvolvimento local (sem Docker das apps)
 
 1. Suba só o banco: `docker compose up -d db`
