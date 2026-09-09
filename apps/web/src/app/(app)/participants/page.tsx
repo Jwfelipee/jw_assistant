@@ -65,6 +65,7 @@ export default function ParticipantsPage() {
     "",
   );
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -188,20 +189,50 @@ export default function ParticipantsPage() {
 
       <section
         aria-label="Filtros"
-        className="page-rise-delay flex flex-col gap-[var(--space-3)] rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] p-[var(--space-4)]"
+        className="page-rise-delay rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)]"
       >
-        <div className="flex flex-wrap items-center justify-between gap-[var(--space-2)]">
-          <h2 className="font-heading text-[var(--text-base)]">Filtros</h2>
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((open) => !open)}
+          aria-expanded={filtersOpen}
+          aria-controls="participants-filters-panel"
+          className="flex w-full min-h-[44px] items-center justify-between gap-[var(--space-3)] px-[var(--space-4)] py-[var(--space-3)] text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[var(--focus-ring)]"
+        >
+          <span className="flex items-center gap-[var(--space-2)]">
+            <h2 className="font-heading text-[var(--text-base)]">Filtros</h2>
+            {activeFilterCount > 0 ? (
+              <span
+                className="rounded-full bg-[var(--accent)] px-[var(--space-2)] py-[0.125rem] text-[var(--text-xs)] font-medium text-[var(--surface)]"
+                aria-label={`${activeFilterCount} filtro${activeFilterCount === 1 ? "" : "s"} ativo${activeFilterCount === 1 ? "" : "s"}`}
+              >
+                {activeFilterCount}
+              </span>
+            ) : null}
+          </span>
+          <span
+            aria-hidden
+            className={`text-[var(--text-sm)] text-[var(--muted)] transition-transform duration-200 ${filtersOpen ? "rotate-180" : ""}`}
+          >
+            ▾
+          </span>
+        </button>
+
+        <div
+          id="participants-filters-panel"
+          hidden={!filtersOpen}
+          className="flex flex-col gap-[var(--space-3)] border-t border-[var(--line)] px-[var(--space-4)] pb-[var(--space-4)] pt-[var(--space-3)]"
+        >
           {activeFilterCount > 0 ? (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="text-[var(--text-sm)] text-[var(--accent)] underline-offset-2 hover:underline"
-            >
-              Limpar filtros ({activeFilterCount})
-            </button>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-[var(--text-sm)] text-[var(--accent)] underline-offset-2 hover:underline"
+              >
+                Limpar filtros ({activeFilterCount})
+              </button>
+            </div>
           ) : null}
-        </div>
 
         <label className="flex flex-col gap-[var(--space-1)]">
           <span className="text-label">Nome</span>
@@ -377,6 +408,7 @@ export default function ParticipantsPage() {
               <option value="desc">Maior primeiro</option>
             </select>
           </label>
+        </div>
         </div>
       </section>
 
