@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -33,4 +34,8 @@ export class UpdateParticipantDto {
   @IsOptional()
   @IsEnum(RolePreference, { message: 'Preferência de papel inválida' })
   rolePreference?: RolePreference;
+
+  @IsOptional()
+  @IsBoolean()
+  qualified?: boolean;
 }

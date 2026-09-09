@@ -5,6 +5,7 @@ export type SlotView = {
   role: AssignmentRole;
   participantId: string | null;
   participantName: string | null;
+  participantPhone: string | null;
 };
 
 export type WeekPartView = {
@@ -62,11 +63,64 @@ export type SuggestResult = {
   candidatesCount: number;
 };
 
+export type AssignmentCountCategory =
+  | "presidente"
+  | "oracao"
+  | "titular"
+  | "dirigente"
+  | "ajudante"
+  | "ministerio";
+
+export const ASSIGNMENT_COUNT_CATEGORY_LABELS: Record<
+  AssignmentCountCategory,
+  string
+> = {
+  titular: "Titular",
+  dirigente: "Dirigente",
+  ajudante: "Ajudante",
+  presidente: "Presidente",
+  ministerio: "Ministério",
+  oracao: "Oração",
+};
+
+const ASSIGNMENT_COUNT_COLUMN_ORDER: AssignmentCountCategory[] = [
+  "titular",
+  "dirigente",
+  "ajudante",
+  "presidente",
+  "ministerio",
+  "oracao",
+];
+
+export function buildVisibleCountColumns(
+  sortCategory: AssignmentCountCategory | null,
+  month: Partial<Record<AssignmentCountCategory, number>>,
+  total: Partial<Record<AssignmentCountCategory, number>>,
+): AssignmentCountCategory[] {
+  const withValues = ASSIGNMENT_COUNT_COLUMN_ORDER.filter(
+    (category) => (month[category] ?? 0) > 0 || (total[category] ?? 0) > 0,
+  );
+
+  if (!sortCategory || !withValues.includes(sortCategory)) {
+    return withValues;
+  }
+
+  return [
+    sortCategory,
+    ...withValues.filter((category) => category !== sortCategory),
+  ];
+}
+
 export type EligibleParticipant = {
   id: string;
   name: string;
   sex: string;
   privilege: string;
+  phone: string | null;
+  assignedThisWeek: boolean;
+  countsThisMonth: Partial<Record<AssignmentCountCategory, number>>;
+  countsTotal: Partial<Record<AssignmentCountCategory, number>>;
+  /** @deprecated use countsTotal[sortCategory] */
   counter: number;
 };
 
@@ -80,6 +134,7 @@ export type IneligibleVisible = {
 export type EligibleParticipantsResult = {
   slotId: string;
   role: AssignmentRole;
+  sortCategory: AssignmentCountCategory | null;
   eligible: EligibleParticipant[];
   ineligibleVisible: IneligibleVisible[];
 };

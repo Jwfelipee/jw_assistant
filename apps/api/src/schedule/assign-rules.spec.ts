@@ -1,12 +1,16 @@
 import {
   AssignmentRole,
+  PartTopic,
   Privilege,
   RolePreference,
   Sex,
 } from '@jw/shared';
 import {
+  buildFemaleRepeatMonthAlert,
   buildMixedSexAlert,
   buildRepeatMonthAlert,
+  counterFieldForCategory,
+  resolveCountCategory,
   sortSuggestionCandidates,
   validateHardAssignRules,
   type ParticipantRules,
@@ -36,10 +40,14 @@ describe('validateHardAssignRules', () => {
     sex: Sex.MALE,
     privilege: Privilege.ELDER,
     rolePreference: RolePreference.ANY,
+    qualified: false,
     titularCount: 0,
     ajudanteCount: 0,
     dirigenteCount: 0,
     leitorCount: 0,
+    presidenteCount: 0,
+    oracaoCount: 0,
+    ministerioCount: 0,
   };
 
   const publisherMale: ParticipantRules = {
@@ -55,10 +63,54 @@ describe('validateHardAssignRules', () => {
     sex: Sex.FEMALE,
     privilege: Privilege.BAPTIZED,
     rolePreference: RolePreference.ANY,
+    qualified: false,
     titularCount: 1,
     ajudanteCount: 2,
     dirigenteCount: 0,
     leitorCount: 0,
+    presidenteCount: 0,
+    oracaoCount: 0,
+    ministerioCount: 0,
+  };
+
+  const oracao: PartTypeRules = {
+    code: 'ORACAO_INICIAL',
+    allowedSexes: [Sex.MALE],
+    privileges: [
+      Privilege.ELDER,
+      Privilege.MINISTERIAL_SERVANT,
+      Privilege.BAPTIZED,
+    ],
+    roles: [AssignmentRole.TITULAR],
+    countsAsMinistryPractice: false,
+  };
+
+  const estudo: PartTypeRules = {
+    code: 'ESTUDO_BIBLICO',
+    allowedSexes: [Sex.MALE],
+    privileges: [
+      Privilege.ELDER,
+      Privilege.MINISTERIAL_SERVANT,
+      Privilege.BAPTIZED,
+    ],
+    roles: [AssignmentRole.DIRIGENTE, AssignmentRole.LEITOR],
+    countsAsMinistryPractice: false,
+  };
+
+  const baptizedMale: ParticipantRules = {
+    id: '4',
+    name: 'Batizado',
+    sex: Sex.MALE,
+    privilege: Privilege.BAPTIZED,
+    rolePreference: RolePreference.ANY,
+    qualified: false,
+    titularCount: 0,
+    ajudanteCount: 0,
+    dirigenteCount: 0,
+    leitorCount: 0,
+    presidenteCount: 0,
+    oracaoCount: 0,
+    ministerioCount: 0,
   };
 
   it('rejects publicador on Tesouros (privilege)', () => {
@@ -107,6 +159,61 @@ describe('validateHardAssignRules', () => {
       }),
     ).toBe('ROLE_PREFERENCE');
   });
+
+  it('rejects unqualified baptized on prayer', () => {
+    expect(
+      validateHardAssignRules({
+        partType: oracao,
+        participant: baptizedMale,
+        role: AssignmentRole.TITULAR,
+        femaleAssignmentCountInWeek: 0,
+      }),
+    ).toBe('PRIVILEGE_NOT_ALLOWED');
+  });
+
+  it('allows qualified baptized on prayer', () => {
+    expect(
+      validateHardAssignRules({
+        partType: oracao,
+        participant: { ...baptizedMale, qualified: true },
+        role: AssignmentRole.TITULAR,
+        femaleAssignmentCountInWeek: 0,
+      }),
+    ).toBeNull();
+  });
+
+  it('allows elder on prayer', () => {
+    expect(
+      validateHardAssignRules({
+        partType: oracao,
+        participant: elder,
+        role: AssignmentRole.TITULAR,
+        femaleAssignmentCountInWeek: 0,
+      }),
+    ).toBeNull();
+  });
+
+  it('rejects qualified baptized as study conductor', () => {
+    expect(
+      validateHardAssignRules({
+        partType: estudo,
+        participant: { ...baptizedMale, qualified: true },
+        role: AssignmentRole.DIRIGENTE,
+        femaleAssignmentCountInWeek: 0,
+      }),
+    ).toBe('PRIVILEGE_NOT_ALLOWED');
+  });
+
+  it('allows qualified baptized as study reader', () => {
+    expect(
+      validateHardAssignRules({
+        partType: estudo,
+        participant: { ...baptizedMale, qualified: true },
+        role: AssignmentRole.LEITOR,
+        femaleAssignmentCountInWeek: 0,
+      }),
+    ).toBeNull();
+  });
 });
 
 describe('soft alerts', () => {
@@ -114,6 +221,20 @@ describe('soft alerts', () => {
     expect(buildRepeatMonthAlert(true, true)?.code).toBe('REPEAT_MONTH');
     expect(buildRepeatMonthAlert(false, true)).toBeNull();
     expect(buildRepeatMonthAlert(true, false)).toBeNull();
+  });
+
+  it('emits FEMALE_REPEAT_MONTH for female on 2nd+ assignment in month', () => {
+    expect(
+      buildFemaleRepeatMonthAlert(Sex.FEMALE, true)?.code,
+    ).toBe('FEMALE_REPEAT_MONTH');
+    expect(buildFemaleRepeatMonthAlert(Sex.FEMALE, false)).toBeNull();
+    expect(buildFemaleRepeatMonthAlert(Sex.MALE, true)).toBeNull();
+  });
+
+  it('emits FEMALE_REPEAT_MONTH for elder female (pioneira) on repeat', () => {
+    expect(
+      buildFemaleRepeatMonthAlert(Sex.FEMALE, true)?.message,
+    ).toContain('participante já possui designação');
   });
 
   it('emits mixed-sex without association and silences with association', () => {
@@ -135,6 +256,107 @@ describe('soft alerts', () => {
   });
 });
 
+describe('resolveCountCategory', () => {
+  const male = Sex.MALE;
+  const female = Sex.FEMALE;
+
+  it('maps presidente and oracao parts', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'PRESIDENTE',
+        partTopic: PartTopic.OUT_OF_TOPIC,
+        role: AssignmentRole.TITULAR,
+        participantSex: male,
+      }),
+    ).toBe('presidente');
+
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'ORACAO_INICIAL',
+        partTopic: PartTopic.OUT_OF_TOPIC,
+        role: AssignmentRole.TITULAR,
+        participantSex: male,
+      }),
+    ).toBe('oracao');
+  });
+
+  it('maps estudo bíblico leitor to titular (not leitorCount)', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'ESTUDO_BIBLICO',
+        partTopic: PartTopic.CHRISTIAN_LIFE,
+        role: AssignmentRole.LEITOR,
+        participantSex: male,
+      }),
+    ).toBe('titular');
+    expect(counterFieldForCategory('titular')).toBe('titularCount');
+  });
+
+  it('maps estudo bíblico dirigente to dirigente', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'ESTUDO_BIBLICO',
+        partTopic: PartTopic.CHRISTIAN_LIFE,
+        role: AssignmentRole.DIRIGENTE,
+        participantSex: male,
+      }),
+    ).toBe('dirigente');
+  });
+
+  it('maps leitura da bíblia male to ministerio', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'LEITURA_BIBLIA',
+        partTopic: PartTopic.TREASURES,
+        role: AssignmentRole.TITULAR,
+        participantSex: male,
+      }),
+    ).toBe('ministerio');
+  });
+
+  it('maps FSM male titular to ministerio and female titular to null', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'FSM_INICIANDO',
+        partTopic: PartTopic.MINISTRY,
+        role: AssignmentRole.TITULAR,
+        participantSex: male,
+      }),
+    ).toBe('ministerio');
+
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'FSM_INICIANDO',
+        partTopic: PartTopic.MINISTRY,
+        role: AssignmentRole.TITULAR,
+        participantSex: female,
+      }),
+    ).toBeNull();
+  });
+
+  it('maps FSM ajudante to ajudante regardless of sex', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'FSM_INICIANDO',
+        partTopic: PartTopic.MINISTRY,
+        role: AssignmentRole.AJUDANTE,
+        participantSex: female,
+      }),
+    ).toBe('ajudante');
+  });
+
+  it('maps custom NVC titular to titular', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'NVC_CUSTOM',
+        partTopic: PartTopic.CHRISTIAN_LIFE,
+        role: AssignmentRole.TITULAR,
+        participantSex: male,
+      }),
+    ).toBe('titular');
+  });
+});
+
 describe('sortSuggestionCandidates', () => {
   it('returns least TITULAR count first', () => {
     const a: ParticipantRules = {
@@ -143,18 +365,22 @@ describe('sortSuggestionCandidates', () => {
       sex: Sex.MALE,
       privilege: Privilege.PUBLISHER,
       rolePreference: RolePreference.ANY,
+      qualified: false,
       titularCount: 5,
       ajudanteCount: 0,
       dirigenteCount: 0,
       leitorCount: 0,
+      presidenteCount: 0,
+      oracaoCount: 0,
+      ministerioCount: 5,
     };
     const b: ParticipantRules = {
       ...a,
       id: 'b',
       name: 'Ana',
-      titularCount: 1,
+      ministerioCount: 1,
     };
-    const sorted = sortSuggestionCandidates([a, b], AssignmentRole.TITULAR);
+    const sorted = sortSuggestionCandidates([a, b], 'ministerio');
     expect(sorted[0].id).toBe('b');
   });
 });

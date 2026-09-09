@@ -19,9 +19,11 @@
     "db:migrate": "dotenv -e ../../.env -- prisma migrate deploy",
     "db:migrate:dev": "dotenv -e ../../.env -- prisma migrate dev",
     "db:seed": "dotenv -e ../../.env -- prisma db seed",
-    "db:validate": "dotenv -e ../../.env -- prisma validate"
+    "db:validate": "dotenv -e ../../.env -- prisma validate",
+    "recalc-counters": "dotenv -e ../../.env -- tsx prisma/recalc-counters.ts"
   },
   "dependencies": {
+    "@jw/shared": "workspace:*",
     "@prisma/client": "^6.15.0"
   },
   "devDependencies": {

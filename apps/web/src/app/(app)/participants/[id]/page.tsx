@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, use, useCallback, useEffect, useMemo, useState } from "react";
+import { Privilege } from "@jw/shared";
 import { ParticipantAbsencesSection } from "@/components/participant-absences";
 import {
   PRIVILEGE_LABELS,
@@ -160,6 +161,9 @@ export default function ParticipantDetailPage({ params }: PageProps) {
             {SEX_LABELS[participant.sex]} ·{" "}
             {PRIVILEGE_LABELS[participant.privilege]} ·{" "}
             {ROLE_PREFERENCE_LABELS[participant.rolePreference]}
+            {participant.privilege === Privilege.BAPTIZED
+              ? ` · Qualificado: ${participant.qualified ? "Sim" : "Não"}`
+              : null}
           </p>
           {participant.phone ? (
             <p className="mt-[var(--space-1)] text-[var(--text-sm)] text-[var(--ink)]">

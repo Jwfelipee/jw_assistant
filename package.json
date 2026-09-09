@@ -10,6 +10,7 @@
     "db:migrate": "pnpm --filter @jw/database db:migrate",
     "db:migrate:dev": "pnpm --filter @jw/database db:migrate:dev",
     "db:seed": "pnpm --filter @jw/database db:seed",
+    "recalc-counters": "pnpm --filter @jw/database recalc-counters",
     "db:generate": "pnpm --filter @jw/database db:generate",
     "db:validate": "pnpm --filter @jw/database db:validate",
     "docker:up": "bash scripts/docker.sh up",

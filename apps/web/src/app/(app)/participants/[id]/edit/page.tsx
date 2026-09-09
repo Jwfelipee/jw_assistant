@@ -89,6 +89,7 @@ export default function EditParticipantPage({ params }: PageProps) {
             sex: participant.sex,
             privilege: participant.privilege,
             rolePreference: participant.rolePreference,
+            qualified: participant.qualified,
           }}
           submitLabel="Salvar alterações"
           pendingLabel="Salvando…"
