@@ -28,8 +28,9 @@ export function ParticipantForm({
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [sex, setSex] = useState<Sex>(initial?.sex ?? Sex.MALE);
   const [privilege, setPrivilege] = useState<Privilege>(
-    initial?.privilege ?? Privilege.PUBLISHER,
+    initial?.privilege ?? Privilege.BAPTIZED,
   );
+  const [qualified, setQualified] = useState(initial?.qualified ?? false);
   const [rolePreference, setRolePreference] = useState<RolePreference>(
     initial?.rolePreference ?? RolePreference.ANY,
   );
@@ -40,7 +41,7 @@ export function ParticipantForm({
 
   useEffect(() => {
     if (!allowedPrivileges.includes(privilege)) {
-      setPrivilege(allowedPrivileges[0] ?? Privilege.PUBLISHER);
+      setPrivilege(allowedPrivileges[0] ?? Privilege.BAPTIZED);
     }
   }, [allowedPrivileges, privilege]);
 
@@ -55,6 +56,7 @@ export function ParticipantForm({
         sex,
         privilege,
         rolePreference,
+        qualified: privilege === Privilege.BAPTIZED ? qualified : false,
       });
     } catch (err) {
       setError(
@@ -142,6 +144,18 @@ export function ParticipantForm({
           </select>
         </div>
       </div>
+
+      {privilege === Privilege.BAPTIZED ? (
+        <label className="flex items-center gap-[var(--space-2)] text-[var(--text-sm)] text-[var(--ink)]">
+          <input
+            type="checkbox"
+            checked={qualified}
+            onChange={(e) => setQualified(e.target.checked)}
+            className="size-4 accent-[var(--accent)]"
+          />
+          Qualificado
+        </label>
+      ) : null}
 
       <div className="flex flex-col gap-[var(--space-2)]">
         <label

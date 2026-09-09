@@ -61,9 +61,9 @@
 
 📄 [Detalhes](./tasks/task-06-participant-form.md)
 
-- [ ] 6.1 Default privilege to `BAPTIZED` on create form
-- [ ] 6.2 Add Qualificado checkbox visible only when privilege is Batizado
-- [ ] 6.3 Show qualified on participant detail/edit pages
+- [x] 6.1 Default privilege to `BAPTIZED` on create form
+- [x] 6.2 Add Qualificado checkbox visible only when privilege is Batizado
+- [x] 6.3 Show qualified on participant detail/edit pages
 
 ## 7. Participant picker counts
 
