@@ -13,6 +13,8 @@ import {
   type WeekPart,
 } from '@jw/database';
 import {
+  AssignmentRole as SharedAssignmentRole,
+  PartTopic as SharedPartTopic,
   Sex,
   Weekday,
   addMonths,
@@ -676,8 +678,8 @@ export class ScheduleService {
 
     const sortCategory = resolveCountCategory({
       partTypeCode: part.partType.code,
-      partTopic: part.partType.topic as PartTopic,
-      role: role as never,
+      partTopic: part.partType.topic as SharedPartTopic,
+      role: role as SharedAssignmentRole,
       participantSex: Sex.MALE,
     });
     const sorted = sortCategory
@@ -713,8 +715,8 @@ export class ScheduleService {
     const partType = slot.weekPart.partType;
     const sortCategory = resolveCountCategory({
       partTypeCode: partType.code,
-      partTopic: partType.topic as PartTopic,
-      role: slot.role as never,
+      partTopic: partType.topic as SharedPartTopic,
+      role: slot.role as SharedAssignmentRole,
       participantSex: Sex.MALE,
     });
 
@@ -1043,8 +1045,8 @@ export class ScheduleService {
 
       const category = resolveCountCategory({
         partTypeCode: slot.weekPart.partType.code,
-        partTopic: slot.weekPart.partType.topic as PartTopic,
-        role: slot.role as AssignmentRole,
+        partTopic: slot.weekPart.partType.topic as SharedPartTopic,
+        role: slot.role as SharedAssignmentRole,
         participantSex: slot.participant.sex as Sex,
       });
       if (!category) continue;
@@ -1262,8 +1264,8 @@ export class ScheduleService {
 
     const category = resolveCountCategory({
       partTypeCode: partType.code,
-      partTopic: partType.topic as PartTopic,
-      role: role as never,
+      partTopic: partType.topic as SharedPartTopic,
+      role: role as SharedAssignmentRole,
       participantSex: participant.sex as Sex,
     });
     if (!category) return;
@@ -1288,8 +1290,8 @@ export class ScheduleService {
 
     const category = resolveCountCategory({
       partTypeCode: partType.code,
-      partTopic: partType.topic as PartTopic,
-      role: role as never,
+      partTopic: partType.topic as SharedPartTopic,
+      role: role as SharedAssignmentRole,
       participantSex: participant.sex as Sex,
     });
     if (!category) return;
