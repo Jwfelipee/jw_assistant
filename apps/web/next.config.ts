@@ -11,7 +11,8 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Standalone is for Docker only; on Vercel it breaks onBuildComplete (missing .nft.json).
+  output: process.env.VERCEL ? undefined : "standalone",
   transpilePackages: ["@jw/shared"],
   async rewrites() {
     return [
