@@ -5,6 +5,8 @@ import { FormEvent, use, useCallback, useEffect, useMemo, useState } from "react
 import { Privilege } from "@jw/shared";
 import { ParticipantAbsencesSection } from "@/components/participant-absences";
 import {
+  PARTICIPANT_COUNTER_FIELDS,
+  PARTICIPANT_COUNTER_LABELS,
   PRIVILEGE_LABELS,
   ROLE_PREFERENCE_LABELS,
   SEX_LABELS,
@@ -187,19 +189,16 @@ export default function ParticipantDetailPage({ params }: PageProps) {
           Contadores
         </h2>
         <dl className="mt-[var(--space-3)] grid grid-cols-2 gap-x-[var(--space-4)] gap-y-[var(--space-3)] sm:grid-cols-3">
-          {[
-            ["Titular", counters.titular],
-            ["Ajudante", counters.ajudante],
-            ["Dirigente", counters.dirigente],
-            ["Leitor", counters.leitor],
-            ["Ministério", counters.ministryPractice],
-          ].map(([label, value]) => (
-            <div key={label as string} className="border-t border-[var(--line)] pt-[var(--space-2)]">
+          {PARTICIPANT_COUNTER_FIELDS.map((key) => (
+            <div
+              key={key}
+              className="border-t border-[var(--line)] pt-[var(--space-2)]"
+            >
               <dt className="text-[var(--text-sm)] text-[var(--muted)]">
-                {label}
+                {PARTICIPANT_COUNTER_LABELS[key]}
               </dt>
               <dd className="font-heading text-[var(--text-xl)] tabular-nums">
-                {value}
+                {counters[key]}
               </dd>
             </div>
           ))}

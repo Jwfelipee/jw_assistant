@@ -24,6 +24,27 @@ export type AssociationView = {
   createdAt: string;
 };
 
+export type ParticipantCounterField =
+  | "presidente"
+  | "oracao"
+  | "titular"
+  | "dirigente"
+  | "ajudante"
+  | "ministerio";
+
+export type ParticipantListFilters = {
+  q?: string;
+  sex?: Sex;
+  privilege?: Privilege;
+  counter?: ParticipantCounterField;
+  counterMin?: number;
+  counterMax?: number;
+  association?: "any" | "none";
+  associatedWith?: string;
+  sortCounter?: ParticipantCounterField;
+  sortDir?: "asc" | "desc";
+};
+
 export type ParticipantListItem = {
   id: string;
   name: string;
@@ -33,6 +54,7 @@ export type ParticipantListItem = {
   rolePreference: RolePreference;
   qualified: boolean;
   counters: ParticipantCounters;
+  associationCount: number;
 };
 
 export type ParticipantDetail = ParticipantListItem & {
@@ -80,6 +102,50 @@ export const ROLE_PREFERENCE_LABELS: Record<RolePreference, string> = {
   [RolePreference.ASSISTANT_ONLY]: "Só ajudante",
 };
 
+export const PARTICIPANT_COUNTER_LABELS: Record<
+  ParticipantCounterField,
+  string
+> = {
+  presidente: "Presidente",
+  oracao: "Oração",
+  titular: "Titular",
+  dirigente: "Dirigente",
+  ajudante: "Ajudante",
+  ministerio: "Ministério",
+};
+
+export const PARTICIPANT_COUNTER_FIELDS: ParticipantCounterField[] = [
+  "presidente",
+  "oracao",
+  "titular",
+  "dirigente",
+  "ajudante",
+  "ministerio",
+];
+
+function buildParticipantsQuery(filters?: ParticipantListFilters): string {
+  if (!filters) return "";
+  const params = new URLSearchParams();
+  if (filters.q?.trim()) params.set("q", filters.q.trim());
+  if (filters.sex) params.set("sex", filters.sex);
+  if (filters.privilege) params.set("privilege", filters.privilege);
+  if (filters.counter) params.set("counter", filters.counter);
+  if (filters.counterMin !== undefined && filters.counterMin !== null) {
+    params.set("counterMin", String(filters.counterMin));
+  }
+  if (filters.counterMax !== undefined && filters.counterMax !== null) {
+    params.set("counterMax", String(filters.counterMax));
+  }
+  if (filters.association) params.set("association", filters.association);
+  if (filters.associatedWith?.trim()) {
+    params.set("associatedWith", filters.associatedWith.trim());
+  }
+  if (filters.sortCounter) params.set("sortCounter", filters.sortCounter);
+  if (filters.sortDir) params.set("sortDir", filters.sortDir);
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
 export function privilegesForSexLabel(sex: Sex): Privilege[] {
   return [...privilegesForSex(sex)];
 }
@@ -101,8 +167,10 @@ async function parseError(res: Response): Promise<string> {
   return "Não foi possível concluir a operação.";
 }
 
-export async function listParticipants(): Promise<ParticipantListItem[]> {
-  const res = await fetch("/api/participants", {
+export async function listParticipants(
+  filters?: ParticipantListFilters,
+): Promise<ParticipantListItem[]> {
+  const res = await fetch(`/api/participants${buildParticipantsQuery(filters)}`, {
     credentials: "include",
     cache: "no-store",
   });

@@ -7,9 +7,11 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { CreateAssociationDto } from './dto/create-association.dto';
 import { CreateParticipantDto } from './dto/create-participant.dto';
+import { ListParticipantsQueryDto } from './dto/list-participants-query.dto';
 import { UpdateParticipantDto } from './dto/update-participant.dto';
 import { ParticipantsService } from './participants.service';
 
@@ -18,8 +20,8 @@ export class ParticipantsController {
   constructor(private readonly participantsService: ParticipantsService) {}
 
   @Get()
-  list() {
-    return this.participantsService.list();
+  list(@Query() query: ListParticipantsQueryDto) {
+    return this.participantsService.list(query);
   }
 
   @Get(':id')

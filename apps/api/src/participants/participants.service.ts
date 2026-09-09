@@ -7,6 +7,7 @@ import {
 import {
   prisma,
   type Participant,
+  type Prisma,
   type Privilege,
   type RolePreference,
   type Sex,
@@ -15,6 +16,30 @@ import { isPrivilegeAllowedForSex, Sex as SharedSex, Privilege as SharedPrivileg
 import type { CreateParticipantDto } from './dto/create-participant.dto';
 import type { UpdateParticipantDto } from './dto/update-participant.dto';
 import type { CreateAssociationDto } from './dto/create-association.dto';
+import type {
+  ListParticipantsQueryDto,
+  ParticipantCounterField,
+} from './dto/list-participants-query.dto';
+
+const COUNTER_DB_FIELD: Record<
+  ParticipantCounterField,
+  keyof Pick<
+    Participant,
+    | 'presidenteCount'
+    | 'oracaoCount'
+    | 'titularCount'
+    | 'dirigenteCount'
+    | 'ajudanteCount'
+    | 'ministerioCount'
+  >
+> = {
+  presidente: 'presidenteCount',
+  oracao: 'oracaoCount',
+  titular: 'titularCount',
+  dirigente: 'dirigenteCount',
+  ajudante: 'ajudanteCount',
+  ministerio: 'ministerioCount',
+};
 
 export type ParticipantCounters = {
   titular: number;
@@ -44,6 +69,7 @@ export type ParticipantListItem = {
   rolePreference: RolePreference;
   qualified: boolean;
   counters: ParticipantCounters;
+  associationCount: number;
 };
 
 export type ParticipantDetail = ParticipantListItem & {
@@ -64,10 +90,25 @@ export type AssignmentHistoryItem = {
 
 @Injectable()
 export class ParticipantsService {
-  async list(): Promise<ParticipantListItem[]> {
+  async list(
+    query: ListParticipantsQueryDto = {},
+  ): Promise<ParticipantListItem[]> {
+    const where = this.buildListWhere(query);
+    const orderBy = this.buildListOrderBy(query);
+
     const rows = await prisma.participant.findMany({
-      orderBy: { name: 'asc' },
+      where,
+      orderBy,
+      include: {
+        _count: {
+          select: {
+            associationsAsA: true,
+            associationsAsB: true,
+          },
+        },
+      },
     });
+
     return rows.map((row) => this.toListItem(row));
   }
 
@@ -332,7 +373,93 @@ export class ParticipantsService {
     return qualified ?? false;
   }
 
-  private toListItem(row: Participant): ParticipantListItem {
+  private buildListWhere(
+    query: ListParticipantsQueryDto,
+  ): Prisma.ParticipantWhereInput {
+    const where: Prisma.ParticipantWhereInput = {};
+    const and: Prisma.ParticipantWhereInput[] = [];
+
+    const q = query.q?.trim();
+    if (q) {
+      where.name = { contains: q, mode: 'insensitive' };
+    }
+
+    if (query.sex) {
+      where.sex = query.sex;
+    }
+
+    if (query.privilege) {
+      where.privilege = query.privilege;
+    }
+
+    if (query.counter) {
+      const field = COUNTER_DB_FIELD[query.counter];
+      const countFilter: Prisma.IntFilter = {};
+
+      if (query.counterMin !== undefined) {
+        countFilter.gte = query.counterMin;
+      }
+      if (query.counterMax !== undefined) {
+        countFilter.lte = query.counterMax;
+      }
+      if (
+        query.counterMin === undefined &&
+        query.counterMax === undefined
+      ) {
+        countFilter.gt = 0;
+      }
+
+      where[field] = countFilter;
+    }
+
+    if (query.associatedWith?.trim()) {
+      const otherId = query.associatedWith.trim();
+      and.push({
+        OR: [
+          { associationsAsA: { some: { bId: otherId } } },
+          { associationsAsB: { some: { aId: otherId } } },
+        ],
+      });
+    } else if (query.association === 'any') {
+      and.push({
+        OR: [
+          { associationsAsA: { some: {} } },
+          { associationsAsB: { some: {} } },
+        ],
+      });
+    } else if (query.association === 'none') {
+      and.push({
+        associationsAsA: { none: {} },
+        associationsAsB: { none: {} },
+      });
+    }
+
+    if (and.length > 0) {
+      where.AND = and;
+    }
+
+    return where;
+  }
+
+  private buildListOrderBy(
+    query: ListParticipantsQueryDto,
+  ): Prisma.ParticipantOrderByWithRelationInput {
+    if (query.sortCounter) {
+      const field = COUNTER_DB_FIELD[query.sortCounter];
+      return { [field]: query.sortDir ?? 'asc' };
+    }
+    return { name: 'asc' };
+  }
+
+  private toListItem(
+    row: Participant & {
+      _count?: { associationsAsA: number; associationsAsB: number };
+    },
+  ): ParticipantListItem {
+    const associationCount =
+      (row._count?.associationsAsA ?? 0) +
+      (row._count?.associationsAsB ?? 0);
+
     return {
       id: row.id,
       name: row.name,
@@ -341,6 +468,7 @@ export class ParticipantsService {
       privilege: row.privilege,
       rolePreference: row.rolePreference,
       qualified: row.qualified,
+      associationCount,
       counters: {
         titular: row.titularCount,
         ajudante: row.ajudanteCount,
