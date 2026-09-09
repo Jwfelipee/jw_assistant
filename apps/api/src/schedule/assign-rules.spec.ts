@@ -1,5 +1,6 @@
 import {
   AssignmentRole,
+  PartTopic,
   Privilege,
   RolePreference,
   Sex,
@@ -7,6 +8,8 @@ import {
 import {
   buildMixedSexAlert,
   buildRepeatMonthAlert,
+  counterFieldForCategory,
+  resolveCountCategory,
   sortSuggestionCandidates,
   validateHardAssignRules,
   type ParticipantRules,
@@ -132,6 +135,107 @@ describe('soft alerts', () => {
         hasAssociation: true,
       }),
     ).toBeNull();
+  });
+});
+
+describe('resolveCountCategory', () => {
+  const male = Sex.MALE;
+  const female = Sex.FEMALE;
+
+  it('maps presidente and oracao parts', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'PRESIDENTE',
+        partTopic: PartTopic.OUT_OF_TOPIC,
+        role: AssignmentRole.TITULAR,
+        participantSex: male,
+      }),
+    ).toBe('presidente');
+
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'ORACAO_INICIAL',
+        partTopic: PartTopic.OUT_OF_TOPIC,
+        role: AssignmentRole.TITULAR,
+        participantSex: male,
+      }),
+    ).toBe('oracao');
+  });
+
+  it('maps estudo bíblico leitor to titular (not leitorCount)', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'ESTUDO_BIBLICO',
+        partTopic: PartTopic.CHRISTIAN_LIFE,
+        role: AssignmentRole.LEITOR,
+        participantSex: male,
+      }),
+    ).toBe('titular');
+    expect(counterFieldForCategory('titular')).toBe('titularCount');
+  });
+
+  it('maps estudo bíblico dirigente to dirigente', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'ESTUDO_BIBLICO',
+        partTopic: PartTopic.CHRISTIAN_LIFE,
+        role: AssignmentRole.DIRIGENTE,
+        participantSex: male,
+      }),
+    ).toBe('dirigente');
+  });
+
+  it('maps leitura da bíblia male to ministerio', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'LEITURA_BIBLIA',
+        partTopic: PartTopic.TREASURES,
+        role: AssignmentRole.TITULAR,
+        participantSex: male,
+      }),
+    ).toBe('ministerio');
+  });
+
+  it('maps FSM male titular to ministerio and female titular to null', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'FSM_INICIANDO',
+        partTopic: PartTopic.MINISTRY,
+        role: AssignmentRole.TITULAR,
+        participantSex: male,
+      }),
+    ).toBe('ministerio');
+
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'FSM_INICIANDO',
+        partTopic: PartTopic.MINISTRY,
+        role: AssignmentRole.TITULAR,
+        participantSex: female,
+      }),
+    ).toBeNull();
+  });
+
+  it('maps FSM ajudante to ajudante regardless of sex', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'FSM_INICIANDO',
+        partTopic: PartTopic.MINISTRY,
+        role: AssignmentRole.AJUDANTE,
+        participantSex: female,
+      }),
+    ).toBe('ajudante');
+  });
+
+  it('maps custom NVC titular to titular', () => {
+    expect(
+      resolveCountCategory({
+        partTypeCode: 'NVC_CUSTOM',
+        partTopic: PartTopic.CHRISTIAN_LIFE,
+        role: AssignmentRole.TITULAR,
+        participantSex: male,
+      }),
+    ).toBe('titular');
   });
 });
 

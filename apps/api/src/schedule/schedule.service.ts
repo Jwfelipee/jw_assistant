@@ -13,6 +13,7 @@ import {
   type WeekPart,
 } from '@jw/database';
 import {
+  Sex,
   Weekday,
   addMonths,
   bimesterIndexForMonth,
@@ -30,9 +31,11 @@ import {
   DEFAULT_NVC_PART_COUNT,
   buildMixedSexAlert,
   buildRepeatMonthAlert,
+  counterFieldForCategory,
   counterKeyForRole,
   hardRejectMessage,
   isStudyPartType,
+  resolveCountCategory,
   sortSuggestionCandidates,
   validateHardAssignRules,
   type AssignHardRejectReason,
@@ -389,8 +392,8 @@ export class ScheduleService {
           await this.decrementCounters(
             tx,
             slot.participantId,
+            part.partType,
             slot.role,
-            part.partType.countsAsMinistryPractice,
           );
         }
       }
@@ -574,21 +577,11 @@ export class ScheduleService {
 
     await prisma.$transaction(async (tx) => {
       if (slot.participantId && slot.participantId !== participant.id) {
-        await this.decrementCounters(
-          tx,
-          slot.participantId,
-          role,
-          partType.countsAsMinistryPractice,
-        );
+        await this.decrementCounters(tx, slot.participantId, partType, role);
       }
 
       if (slot.participantId !== participant.id) {
-        await this.incrementCounters(
-          tx,
-          participant.id,
-          role,
-          partType.countsAsMinistryPractice,
-        );
+        await this.incrementCounters(tx, participant.id, partType, role);
       }
 
       await tx.assignmentSlot.update({
@@ -616,8 +609,8 @@ export class ScheduleService {
       await this.decrementCounters(
         tx,
         slot.participantId!,
+        slot.weekPart.partType,
         slot.role,
-        slot.weekPart.partType.countsAsMinistryPractice,
       );
       await tx.assignmentSlot.update({
         where: { id: slot.id },
@@ -1060,42 +1053,55 @@ export class ScheduleService {
   private async incrementCounters(
     tx: Tx,
     participantId: string,
+    partType: Pick<PartType, 'code' | 'topic'>,
     role: AssignmentRole,
-    ministry: boolean,
   ): Promise<void> {
-    const key = counterKeyForRole(role as never);
+    const participant = await tx.participant.findUnique({
+      where: { id: participantId },
+      select: { sex: true },
+    });
+    if (!participant) return;
+
+    const category = resolveCountCategory({
+      partTypeCode: partType.code,
+      partTopic: partType.topic as PartTopic,
+      role: role as never,
+      participantSex: participant.sex as Sex,
+    });
+    if (!category) return;
+
+    const field = counterFieldForCategory(category);
     await tx.participant.update({
       where: { id: participantId },
-      data: {
-        [key]: { increment: 1 },
-        ...(ministry ? { ministryPracticeCount: { increment: 1 } } : {}),
-      },
+      data: { [field]: { increment: 1 } },
     });
   }
 
   private async decrementCounters(
     tx: Tx,
     participantId: string,
+    partType: Pick<PartType, 'code' | 'topic'>,
     role: AssignmentRole,
-    ministry: boolean,
   ): Promise<void> {
     const participant = await tx.participant.findUnique({
       where: { id: participantId },
     });
     if (!participant) return;
 
-    const key = counterKeyForRole(role as never);
-    const current = participant[key];
-    const ministryCurrent = participant.ministryPracticeCount;
+    const category = resolveCountCategory({
+      partTypeCode: partType.code,
+      partTopic: partType.topic as PartTopic,
+      role: role as never,
+      participantSex: participant.sex as Sex,
+    });
+    if (!category) return;
+
+    const field = counterFieldForCategory(category);
+    const current = participant[field];
 
     await tx.participant.update({
       where: { id: participantId },
-      data: {
-        [key]: Math.max(0, current - 1),
-        ...(ministry
-          ? { ministryPracticeCount: Math.max(0, ministryCurrent - 1) }
-          : {}),
-      },
+      data: { [field]: Math.max(0, current - 1) },
     });
   }
 

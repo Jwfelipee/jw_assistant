@@ -1,11 +1,30 @@
 import {
   AssignmentRole,
+  PartTopic,
   Privilege,
   RolePreference,
   Sex,
 } from '@jw/shared';
 
 export const STUDY_PART_CODE = 'ESTUDO_BIBLICO';
+
+const ORACAO_PART_CODES = new Set(['ORACAO_INICIAL', 'ORACAO_FINAL']);
+
+export type AssignmentCountCategory =
+  | 'presidente'
+  | 'oracao'
+  | 'titular'
+  | 'dirigente'
+  | 'ajudante'
+  | 'ministerio';
+
+export type CountCategoryField =
+  | 'presidenteCount'
+  | 'oracaoCount'
+  | 'titularCount'
+  | 'dirigenteCount'
+  | 'ajudanteCount'
+  | 'ministerioCount';
 
 export const DEFAULT_FSM_PART_COUNT = 3;
 export const DEFAULT_NVC_PART_COUNT = 2;
@@ -85,6 +104,89 @@ export function counterKeyForRole(
       return 'leitorCount';
     default: {
       const _exhaustive: never = role;
+      return _exhaustive;
+    }
+  }
+}
+
+/** Maps part type + role + sex to the assignment count category (design D1). */
+export function resolveCountCategory(input: {
+  partTypeCode: string;
+  partTopic: PartTopic;
+  role: AssignmentRole;
+  participantSex: Sex;
+}): AssignmentCountCategory | null {
+  const { partTypeCode, partTopic, role, participantSex } = input;
+
+  if (partTypeCode === 'PRESIDENTE') {
+    return 'presidente';
+  }
+
+  if (ORACAO_PART_CODES.has(partTypeCode)) {
+    return 'oracao';
+  }
+
+  if (partTypeCode === STUDY_PART_CODE) {
+    if (role === AssignmentRole.LEITOR) {
+      return 'titular';
+    }
+    if (role === AssignmentRole.DIRIGENTE) {
+      return 'dirigente';
+    }
+    return null;
+  }
+
+  if (role === AssignmentRole.AJUDANTE) {
+    return 'ajudante';
+  }
+
+  if (partTypeCode === 'LEITURA_BIBLIA') {
+    return participantSex === Sex.MALE ? 'ministerio' : null;
+  }
+
+  if (partTopic === PartTopic.MINISTRY) {
+    if (participantSex === Sex.MALE && role === AssignmentRole.TITULAR) {
+      return 'ministerio';
+    }
+    return null;
+  }
+
+  if (partTopic === PartTopic.CHRISTIAN_LIFE) {
+    if (role === AssignmentRole.TITULAR) {
+      return 'titular';
+    }
+    return null;
+  }
+
+  if (role === AssignmentRole.TITULAR) {
+    return 'titular';
+  }
+
+  if (role === AssignmentRole.DIRIGENTE) {
+    return 'dirigente';
+  }
+
+  return null;
+}
+
+export function counterFieldForCategory(
+  category: AssignmentCountCategory,
+): CountCategoryField {
+  switch (category) {
+    case 'presidente':
+      return 'presidenteCount';
+    case 'oracao':
+      return 'oracaoCount';
+    case 'titular':
+      return 'titularCount';
+    case 'dirigente':
+      return 'dirigenteCount';
+    case 'ajudante':
+      return 'ajudanteCount';
+    case 'ministerio':
+      return 'ministerioCount';
+    default: {
+      const _exhaustive: never = category;
       return _exhaustive;
     }
   }

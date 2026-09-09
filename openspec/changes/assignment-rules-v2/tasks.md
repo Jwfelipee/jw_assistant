@@ -25,10 +25,10 @@
 
 📄 [Detalhes](./tasks/task-02-count-taxonomy-and-recalc.md)
 
-- [ ] 2.1 Implement `resolveCountCategory()` and counter field mapping in `assign-rules.ts`
-- [ ] 2.2 Refactor `incrementCounters` / `decrementCounters` in `schedule.service.ts`
-- [ ] 2.3 Add idempotent historical recalculation script/migration step
-- [ ] 2.4 Unit tests for category resolution (study leitor→titular, FSM male→ministerio, prayers→oracao)
+- [x] 2.1 Implement `resolveCountCategory()` and counter field mapping in `assign-rules.ts`
+- [x] 2.2 Refactor `incrementCounters` / `decrementCounters` in `schedule.service.ts`
+- [x] 2.3 Add idempotent historical recalculation script/migration step
+- [x] 2.4 Unit tests for category resolution (study leitor→titular, FSM male→ministerio, prayers→oracao)
 
 ## 3. Eligibility qualified rules
 
