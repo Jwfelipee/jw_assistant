@@ -31,7 +31,10 @@ export type CountCategoryField =
 export const DEFAULT_FSM_PART_COUNT = 3;
 export const DEFAULT_NVC_PART_COUNT = 2;
 
-export type SoftAlertCode = 'REPEAT_MONTH' | 'MIXED_SEX_PAIR';
+export type SoftAlertCode =
+  | 'REPEAT_MONTH'
+  | 'MIXED_SEX_PAIR'
+  | 'FEMALE_REPEAT_MONTH';
 
 export type SoftAlert = {
   code: SoftAlertCode;
@@ -350,6 +353,19 @@ export function buildRepeatMonthAlert(
     code: 'REPEAT_MONTH',
     message:
       'Participante já possui designação neste mês (alerta configurado para o privilégio)',
+  };
+}
+
+/** Soft alert: female participant assigned again in the same month (always). */
+export function buildFemaleRepeatMonthAlert(
+  sex: Sex,
+  alreadyAssignedInMonth: boolean,
+): SoftAlert | null {
+  if (sex !== Sex.FEMALE || !alreadyAssignedInMonth) return null;
+  return {
+    code: 'FEMALE_REPEAT_MONTH',
+    message:
+      'Esta participante já possui designação neste mês. Confirme se deseja designá-la novamente.',
   };
 }
 

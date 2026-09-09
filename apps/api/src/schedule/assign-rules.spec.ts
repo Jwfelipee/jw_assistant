@@ -6,6 +6,7 @@ import {
   Sex,
 } from '@jw/shared';
 import {
+  buildFemaleRepeatMonthAlert,
   buildMixedSexAlert,
   buildRepeatMonthAlert,
   counterFieldForCategory,
@@ -220,6 +221,20 @@ describe('soft alerts', () => {
     expect(buildRepeatMonthAlert(true, true)?.code).toBe('REPEAT_MONTH');
     expect(buildRepeatMonthAlert(false, true)).toBeNull();
     expect(buildRepeatMonthAlert(true, false)).toBeNull();
+  });
+
+  it('emits FEMALE_REPEAT_MONTH for female on 2nd+ assignment in month', () => {
+    expect(
+      buildFemaleRepeatMonthAlert(Sex.FEMALE, true)?.code,
+    ).toBe('FEMALE_REPEAT_MONTH');
+    expect(buildFemaleRepeatMonthAlert(Sex.FEMALE, false)).toBeNull();
+    expect(buildFemaleRepeatMonthAlert(Sex.MALE, true)).toBeNull();
+  });
+
+  it('emits FEMALE_REPEAT_MONTH for elder female (pioneira) on repeat', () => {
+    expect(
+      buildFemaleRepeatMonthAlert(Sex.FEMALE, true)?.message,
+    ).toContain('participante já possui designação');
   });
 
   it('emits mixed-sex without association and silences with association', () => {

@@ -25,7 +25,7 @@ export type ParticipantPickerProps = {
   participantName?: string | null;
   disabled?: boolean;
   busy?: boolean;
-  onSelect: (participantId: string) => void;
+  onSelect: (participantId: string, participantName: string) => void;
 };
 
 const pickerFieldClass = `${fieldClass} min-h-[44px] text-[var(--text-base)] disabled:cursor-not-allowed disabled:opacity-60`;
@@ -140,7 +140,7 @@ export function ParticipantPicker({
       : "";
 
   function selectParticipant(participant: EligibleParticipant) {
-    onSelect(participant.id);
+    onSelect(participant.id, participant.name);
     closeDropdown();
     inputRef.current?.blur();
   }

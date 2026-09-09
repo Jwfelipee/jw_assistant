@@ -53,9 +53,9 @@
 
 📄 [Detalhes](./tasks/task-05-female-alert-inline-confirm.md)
 
-- [ ] 5.1 Add `FEMALE_REPEAT_MONTH` soft alert in `collectSoftAlerts` (always for female, any privilege)
-- [ ] 5.2 Move confirmation UI inline per slot on week page (keep optional page-level fallback)
-- [ ] 5.3 Fix empty-picker UX: show pending participant name until confirm or cancel
+- [x] 5.1 Add `FEMALE_REPEAT_MONTH` soft alert in `collectSoftAlerts` (always for female, any privilege)
+- [x] 5.2 Move confirmation UI inline per slot on week page (keep optional page-level fallback)
+- [x] 5.3 Fix empty-picker UX: show pending participant name until confirm or cancel
 
 ## 6. Participant form
 

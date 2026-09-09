@@ -31,7 +31,6 @@ import {
   btnRowClass,
   btnSecondary,
   fieldClass,
-  sectionCardClass,
 } from "@/lib/ui";
 
 type PageProps = {
@@ -48,6 +47,7 @@ const TOPIC_ORDER: PartTopic[] = [
 type PendingConfirm = {
   slotId: string;
   participantId: string;
+  participantName: string;
   alerts: SoftAlert[];
 };
 
@@ -122,6 +122,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
     slotId: string,
     participantId: string,
     confirm: boolean,
+    participantName?: string,
   ): Promise<"ok" | "confirm" | "error"> {
     setBusySlotId(slotId);
     setError(null);
@@ -132,6 +133,10 @@ export default function WeekSchedulePage({ params }: PageProps) {
         setPendingConfirm({
           slotId,
           participantId,
+          participantName:
+            participantName ??
+            pendingConfirm?.participantName ??
+            "",
           alerts: result.alerts,
         });
         return "confirm";
@@ -192,6 +197,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
         slotId,
         result.suggestion.id,
         false,
+        result.suggestion.name,
       );
       if (assignResult !== "error") {
         setSuggestionNote(`Sugerido: ${result.suggestion.name}`);
@@ -395,27 +401,73 @@ export default function WeekSchedulePage({ params }: PageProps) {
         </div>
 
         <ul className="flex flex-col gap-[var(--space-3)] border-l-2 border-[var(--line)] pl-[var(--space-3)]">
-          {part.slots.map((slot) => (
+          {part.slots.map((slot) => {
+            const isPending = pendingConfirm?.slotId === slot.id;
+            const displayName = isPending
+              ? pendingConfirm.participantName
+              : slot.participantName;
+            const displayId = isPending
+              ? pendingConfirm.participantId
+              : slot.participantId;
+
+            return (
             <li key={slot.id} className="flex flex-col gap-[var(--space-2)]">
               <p className="text-[var(--text-sm)] font-medium text-[var(--ink)]">
                 {ROLE_LABELS[slot.role]}
-                {slot.participantName ? ` — ${slot.participantName}` : " — em aberto"}
+                {displayName ? ` — ${displayName}` : " — em aberto"}
               </p>
               <label className="text-label">
                 Participante
                 <div className="mt-[var(--space-1)]">
                   <ParticipantPicker
                     slotId={slot.id}
-                    value={slot.participantId}
-                    participantName={slot.participantName}
+                    value={displayId}
+                    participantName={displayName}
                     disabled={busySlotId === slot.id}
                     busy={busySlotId === slot.id}
-                    onSelect={(participantId) =>
-                      void applyAssign(slot.id, participantId, false)
+                    onSelect={(participantId, name) =>
+                      void applyAssign(slot.id, participantId, false, name)
                     }
                   />
                 </div>
               </label>
+              {isPending ? (
+                <div
+                  role="alert"
+                  className="rounded-[var(--radius-md)] border border-[var(--warning)] bg-[color-mix(in_srgb,var(--warning)_8%,var(--surface))] p-[var(--space-3)]"
+                >
+                  <p className="text-[var(--text-sm)] font-medium text-[var(--ink)]">
+                    Confirmar apesar dos alertas
+                  </p>
+                  <ul className="mt-[var(--space-2)] flex flex-col gap-[var(--space-1)]">
+                    {pendingConfirm.alerts.map((alert) => (
+                      <li
+                        key={alert.code + alert.message}
+                        className="text-[var(--text-sm)] text-[var(--ink)]"
+                      >
+                        {alert.message}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className={`${btnRowClass} mt-[var(--space-3)]`}>
+                    <button
+                      type="button"
+                      className={btnPrimary}
+                      disabled={busySlotId === slot.id}
+                      onClick={() => void onConfirmAlerts()}
+                    >
+                      Confirmar designação
+                    </button>
+                    <button
+                      type="button"
+                      className={btnOutline}
+                      onClick={() => setPendingConfirm(null)}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               <div className={btnRowClass}>
                 <button
                   type="button"
@@ -437,7 +489,8 @@ export default function WeekSchedulePage({ params }: PageProps) {
                 ) : null}
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       </>
     );
@@ -492,47 +545,6 @@ export default function WeekSchedulePage({ params }: PageProps) {
         <p className="text-[var(--text-sm)] text-[var(--accent)]" role="status">
           {suggestionNote}
         </p>
-      ) : null}
-
-      {pendingConfirm ? (
-        <section
-          aria-labelledby="alerts-heading"
-          className={sectionCardClass}
-        >
-          <h2
-            id="alerts-heading"
-            className="font-heading text-[var(--text-lg)]"
-          >
-            Confirmar apesar dos alertas
-          </h2>
-          <ul className="mt-[var(--space-3)] flex flex-col gap-[var(--space-2)]">
-            {pendingConfirm.alerts.map((alert) => (
-              <li
-                key={alert.code + alert.message}
-                className="text-[var(--text-sm)] text-[var(--ink)]"
-              >
-                {alert.message}
-              </li>
-            ))}
-          </ul>
-          <div className={`${btnRowClass} mt-[var(--space-4)]`}>
-            <button
-              type="button"
-              className={btnPrimary}
-              disabled={busySlotId === pendingConfirm.slotId}
-              onClick={() => void onConfirmAlerts()}
-            >
-              Confirmar designação
-            </button>
-            <button
-              type="button"
-              className={btnOutline}
-              onClick={() => setPendingConfirm(null)}
-            >
-              Cancelar
-            </button>
-          </div>
-        </section>
       ) : null}
 
       {partsByTopic.map((group) => (

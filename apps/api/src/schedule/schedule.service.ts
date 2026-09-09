@@ -29,6 +29,7 @@ import { isEligibleGivenAbsences } from '../absences/eligibility';
 import {
   DEFAULT_FSM_PART_COUNT,
   DEFAULT_NVC_PART_COUNT,
+  buildFemaleRepeatMonthAlert,
   buildMixedSexAlert,
   buildRepeatMonthAlert,
   counterFieldForCategory,
@@ -1178,7 +1179,13 @@ export class ScheduleService {
       alertConfig?.repeatMonthAlertEnabled ?? false,
       otherInMonth > 0,
     );
-    if (repeat) {
+    const femaleRepeat = buildFemaleRepeatMonthAlert(
+      input.sex as Sex,
+      otherInMonth > 0,
+    );
+    if (femaleRepeat) {
+      alerts.push(femaleRepeat);
+    } else if (repeat) {
       alerts.push(repeat);
     }
 
