@@ -314,7 +314,7 @@ describe('resolveCountCategory', () => {
     ).toBe('ministerio');
   });
 
-  it('maps FSM male titular to ministerio and female titular to null', () => {
+  it('maps FSM titular to ministerio regardless of sex', () => {
     expect(
       resolveCountCategory({
         partTypeCode: 'FSM_INICIANDO',
@@ -331,7 +331,7 @@ describe('resolveCountCategory', () => {
         role: AssignmentRole.TITULAR,
         participantSex: female,
       }),
-    ).toBeNull();
+    ).toBe('ministerio');
   });
 
   it('maps FSM ajudante to ajudante regardless of sex', () => {

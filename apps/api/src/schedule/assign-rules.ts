@@ -201,7 +201,7 @@ export function resolveCountCategory(input: {
   }
 
   if (partTopic === PartTopic.MINISTRY) {
-    if (participantSex === Sex.MALE && role === AssignmentRole.TITULAR) {
+    if (role === AssignmentRole.TITULAR) {
       return 'ministerio';
     }
     return null;
