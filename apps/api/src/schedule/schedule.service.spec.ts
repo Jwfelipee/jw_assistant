@@ -355,6 +355,33 @@ describe('ScheduleService.getEligibleParticipants', () => {
     expect(result.slotId).toBe(slotId);
     expect(result.role).toBe(AssignmentRole.TITULAR);
   });
+
+  it('counts female FSM titular in both titular and ministerio', async () => {
+    mockSlot(fsmPartType);
+    mockedPrisma.participant.findMany.mockResolvedValue([sisterEligible]);
+    mockedPrisma.assignmentSlot.findMany.mockResolvedValue([
+      {
+        participantId: 'p-sister-ok',
+        role: AssignmentRole.TITULAR,
+        participant: { sex: Sex.FEMALE },
+        weekPart: {
+          week: { monthId: 'month-1' },
+          partType: { code: 'FSM_INICIANDO', topic: PartTopic.MINISTRY },
+        },
+      },
+    ]);
+
+    const result = await service.getEligibleParticipants(slotId);
+
+    expect(result.eligible[0].countsThisMonth).toEqual({
+      titular: 1,
+      ministerio: 1,
+    });
+    expect(result.eligible[0].countsTotal).toEqual({
+      titular: 1,
+      ministerio: 1,
+    });
+  });
 });
 
 describe('ScheduleService.updateWeekPartTitle', () => {

@@ -39,6 +39,7 @@ import {
   getCategoryCounter,
   hardRejectMessage,
   isStudyPartType,
+  resolveCountCategories,
   resolveCountCategory,
   sortEligibleParticipants,
   sortSuggestionCandidates,
@@ -1043,18 +1044,20 @@ export class ScheduleService {
     for (const slot of slots) {
       if (!slot.participantId || !slot.participant) continue;
 
-      const category = resolveCountCategory({
+      const categories = resolveCountCategories({
         partTypeCode: slot.weekPart.partType.code,
         partTopic: slot.weekPart.partType.topic as SharedPartTopic,
         role: slot.role as SharedAssignmentRole,
         participantSex: slot.participant.sex as Sex,
       });
-      if (!category) continue;
+      if (categories.length === 0) continue;
 
       const entry = raw.get(slot.participantId) ?? { month: {}, total: {} };
-      entry.total[category] = (entry.total[category] ?? 0) + 1;
-      if (slot.weekPart.week.monthId === monthId) {
-        entry.month[category] = (entry.month[category] ?? 0) + 1;
+      for (const category of categories) {
+        entry.total[category] = (entry.total[category] ?? 0) + 1;
+        if (slot.weekPart.week.monthId === monthId) {
+          entry.month[category] = (entry.month[category] ?? 0) + 1;
+        }
       }
       raw.set(slot.participantId, entry);
     }
@@ -1262,18 +1265,22 @@ export class ScheduleService {
     });
     if (!participant) return;
 
-    const category = resolveCountCategory({
+    const categories = resolveCountCategories({
       partTypeCode: partType.code,
       partTopic: partType.topic as SharedPartTopic,
       role: role as SharedAssignmentRole,
       participantSex: participant.sex as Sex,
     });
-    if (!category) return;
+    if (categories.length === 0) return;
 
-    const field = counterFieldForCategory(category);
+    const data: Record<string, { increment: number }> = {};
+    for (const category of categories) {
+      const field = counterFieldForCategory(category);
+      data[field] = { increment: 1 };
+    }
     await tx.participant.update({
       where: { id: participantId },
-      data: { [field]: { increment: 1 } },
+      data,
     });
   }
 
@@ -1288,20 +1295,22 @@ export class ScheduleService {
     });
     if (!participant) return;
 
-    const category = resolveCountCategory({
+    const categories = resolveCountCategories({
       partTypeCode: partType.code,
       partTopic: partType.topic as SharedPartTopic,
       role: role as SharedAssignmentRole,
       participantSex: participant.sex as Sex,
     });
-    if (!category) return;
+    if (categories.length === 0) return;
 
-    const field = counterFieldForCategory(category);
-    const current = participant[field];
-
+    const data: Record<string, number> = {};
+    for (const category of categories) {
+      const field = counterFieldForCategory(category);
+      data[field] = Math.max(0, participant[field] - 1);
+    }
     await tx.participant.update({
       where: { id: participantId },
-      data: { [field]: Math.max(0, current - 1) },
+      data,
     });
   }
 

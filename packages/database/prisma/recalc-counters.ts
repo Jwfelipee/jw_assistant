@@ -14,7 +14,7 @@ import {
 } from "@jw/shared";
 import {
   counterFieldForCategory,
-  resolveCountCategory,
+  resolveCountCategories,
   type CountCategoryField,
 } from "../../../apps/api/src/schedule/assign-rules";
 
@@ -63,17 +63,19 @@ export async function recalcCounters(): Promise<void> {
     const participantId = slot.participantId;
     if (!participantId || !slot.participant) continue;
 
-    const category = resolveCountCategory({
+    const categories = resolveCountCategories({
       partTypeCode: slot.weekPart.partType.code,
       partTopic: slot.weekPart.partType.topic as PartTopic,
       role: slot.role as AssignmentRole,
       participantSex: slot.participant.sex as Sex,
     });
-    if (!category) continue;
+    if (categories.length === 0) continue;
 
-    const field = counterFieldForCategory(category);
     const totals = totalsByParticipant.get(participantId) ?? emptyCounters();
-    totals[field] += 1;
+    for (const category of categories) {
+      const field = counterFieldForCategory(category);
+      totals[field] += 1;
+    }
     totalsByParticipant.set(participantId, totals);
   }
 
