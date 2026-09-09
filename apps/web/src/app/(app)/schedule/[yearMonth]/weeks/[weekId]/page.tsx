@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AssignmentRole, PartTopic } from "@jw/shared";
 import { AddWeekPartModal } from "@/components/add-week-part-modal";
 import { ParticipantPicker } from "@/components/participant-picker";
@@ -20,10 +21,15 @@ import {
   suggestForPart,
   unassignSlot,
   updatePartTitle,
+  type MonthView,
   type SoftAlert,
   type WeekPartView,
   type WeekView,
 } from "@/lib/schedule";
+import {
+  buildAssignmentWhatsAppMessage,
+  whatsAppUrl,
+} from "@/lib/whatsapp";
 import {
   btnDangerOutline,
   btnOutline,
@@ -53,7 +59,11 @@ type PendingConfirm = {
 
 export default function WeekSchedulePage({ params }: PageProps) {
   const { yearMonth, weekId } = use(params);
+  const router = useRouter();
+  const mainRef = useRef<HTMLElement>(null);
+  const [month, setMonth] = useState<MonthView | null>(null);
   const [week, setWeek] = useState<WeekView | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [fsmTypes, setFsmTypes] = useState<PartTypeDto[]>([]);
   const [nvcTypes, setNvcTypes] = useState<PartTypeDto[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -83,10 +93,56 @@ export default function WeekSchedulePage({ params }: PageProps) {
     if (!found) {
       throw new Error("Semana não encontrada neste mês.");
     }
+    setMonth(month);
     setWeek(found);
     setFsmTypes(fsm);
     setNvcTypes(nvc.filter((t) => t.code !== "ESTUDO_BIBLICO"));
   }, [yearMonth, weekId]);
+
+  const weekIndex = month?.weeks.findIndex((w) => w.id === weekId) ?? -1;
+  const prevWeek =
+    month && weekIndex > 0 ? month.weeks[weekIndex - 1] : null;
+  const nextWeek =
+    month && weekIndex >= 0 && weekIndex < month.weeks.length - 1
+      ? month.weeks[weekIndex + 1]
+      : null;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const isTouch = window.matchMedia("(pointer: coarse)").matches;
+    if (!isTouch) return;
+
+    let startX = 0;
+    let startY = 0;
+
+    function onTouchStart(e: TouchEvent) {
+      if (pickerOpen) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }
+
+    function onTouchEnd(e: TouchEvent) {
+      if (pickerOpen) return;
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return;
+
+      if (dx < 0 && nextWeek) {
+        router.push(`/schedule/${yearMonth}/weeks/${nextWeek.id}`);
+      }
+      if (dx > 0 && prevWeek) {
+        router.push(`/schedule/${yearMonth}/weeks/${prevWeek.id}`);
+      }
+    }
+
+    const el = mainRef.current;
+    el?.addEventListener("touchstart", onTouchStart, { passive: true });
+    el?.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      el?.removeEventListener("touchstart", onTouchStart);
+      el?.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [pickerOpen, prevWeek, nextWeek, yearMonth, router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -316,6 +372,33 @@ export default function WeekSchedulePage({ params }: PageProps) {
     }
   }
 
+  function buildSlotWhatsAppMessage(part: WeekPartView, slot: WeekPartView["slots"][number]) {
+    if (!week) return "";
+    const titularSlot = part.slots.find((s) => s.role === AssignmentRole.TITULAR);
+    const ajudanteSlot = part.slots.find((s) => s.role === AssignmentRole.AJUDANTE);
+    const leitorSlot = part.slots.find((s) => s.role === AssignmentRole.LEITOR);
+    const dirigenteSlot = part.slots.find(
+      (s) => s.role === AssignmentRole.DIRIGENTE,
+    );
+
+    const titularName =
+      titularSlot?.participantName ??
+      (slot.role === AssignmentRole.DIRIGENTE
+        ? dirigenteSlot?.participantName
+        : null);
+    const ajudanteOrLeitorName =
+      ajudanteSlot?.participantName ?? leitorSlot?.participantName ?? null;
+
+    return buildAssignmentWhatsAppMessage({
+      meetingDate: formatDateBr(week.meetingDate),
+      partTitle: part.title || part.partTypeLabel,
+      slotRole: slot.role,
+      titularName,
+      ajudanteOrLeitorName,
+      focusRole: slot.role,
+    });
+  }
+
   function renderPartBody(part: WeekPartView) {
     return (
       <>
@@ -425,6 +508,7 @@ export default function WeekSchedulePage({ params }: PageProps) {
                     participantName={displayName}
                     disabled={busySlotId === slot.id}
                     busy={busySlotId === slot.id}
+                    onOpenChange={setPickerOpen}
                     onSelect={(participantId, name) =>
                       void applyAssign(slot.id, participantId, false, name)
                     }
@@ -487,6 +571,19 @@ export default function WeekSchedulePage({ params }: PageProps) {
                     Limpar
                   </button>
                 ) : null}
+                {slot.participantPhone ? (
+                  <a
+                    href={whatsAppUrl(
+                      slot.participantPhone,
+                      buildSlotWhatsAppMessage(part, slot),
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={btnOutline}
+                  >
+                    WhatsApp
+                  </a>
+                ) : null}
               </div>
             </li>
             );
@@ -513,7 +610,10 @@ export default function WeekSchedulePage({ params }: PageProps) {
   }
 
   return (
-    <main className="mx-auto flex min-h-0 w-full max-w-[var(--shell-max)] flex-col gap-[var(--space-6)] px-[var(--page-pad)] py-[var(--space-8)]">
+    <main
+      ref={mainRef}
+      className="mx-auto flex min-h-0 w-full max-w-[var(--shell-max)] flex-col gap-[var(--space-6)] px-[var(--page-pad)] py-[var(--space-8)]"
+    >
       <header className="page-rise border-l-[3px] border-[var(--accent)] pl-[var(--space-4)]">
         <p className="text-[var(--text-sm)] text-[var(--muted)]">
           <Link
@@ -611,6 +711,27 @@ export default function WeekSchedulePage({ params }: PageProps) {
           )}
         </section>
       ))}
+
+      <nav className="flex justify-between border-t border-[var(--line)] pt-[var(--space-4)]">
+        {prevWeek ? (
+          <Link
+            href={`/schedule/${yearMonth}/weeks/${prevWeek.id}`}
+            className="text-[var(--text-sm)] text-[var(--accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+          >
+            ← Semana anterior
+          </Link>
+        ) : (
+          <span />
+        )}
+        {nextWeek ? (
+          <Link
+            href={`/schedule/${yearMonth}/weeks/${nextWeek.id}`}
+            className="text-[var(--text-sm)] text-[var(--accent)] underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+          >
+            Próxima semana →
+          </Link>
+        ) : null}
+      </nav>
 
       {addModalTopic ? (
         <AddWeekPartModal

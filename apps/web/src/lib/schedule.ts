@@ -5,6 +5,7 @@ export type SlotView = {
   role: AssignmentRole;
   participantId: string | null;
   participantName: string | null;
+  participantPhone: string | null;
 };
 
 export type WeekPartView = {

@@ -60,6 +60,7 @@ type SlotView = {
   role: AssignmentRole;
   participantId: string | null;
   participantName: string | null;
+  participantPhone: string | null;
 };
 
 type WeekPartView = {
@@ -293,7 +294,9 @@ export class ScheduleService {
                 partType: true,
                 slots: {
                   include: {
-                    participant: { select: { id: true, name: true } },
+                    participant: {
+                      select: { id: true, name: true, phone: true },
+                    },
                   },
                   orderBy: { role: 'asc' },
                 },
@@ -359,7 +362,9 @@ export class ScheduleService {
       include: {
         partType: true,
         slots: {
-          include: { participant: { select: { id: true, name: true } } },
+          include: {
+            participant: { select: { id: true, name: true, phone: true } },
+          },
           orderBy: { role: 'asc' },
         },
       },
@@ -1302,7 +1307,7 @@ export class ScheduleService {
     const slot = await prisma.assignmentSlot.findUnique({
       where: { id: slotId },
       include: {
-        participant: { select: { id: true, name: true } },
+        participant: { select: { id: true, name: true, phone: true } },
         weekPart: {
           include: {
             partType: true,
@@ -1439,7 +1444,7 @@ export class ScheduleService {
 
   private toSlotView(
     slot: AssignmentSlot & {
-      participant?: { id: string; name: string } | null;
+      participant?: { id: string; name: string; phone: string | null } | null;
     },
   ): SlotView {
     return {
@@ -1447,6 +1452,7 @@ export class ScheduleService {
       role: slot.role,
       participantId: slot.participantId,
       participantName: slot.participant?.name ?? null,
+      participantPhone: slot.participant?.phone ?? null,
     };
   }
 
@@ -1455,7 +1461,11 @@ export class ScheduleService {
       partType: PartType;
       slots: Array<
         AssignmentSlot & {
-          participant?: { id: string; name: string } | null;
+          participant?: {
+            id: string;
+            name: string;
+            phone: string | null;
+          } | null;
         }
       >;
     },
@@ -1491,7 +1501,11 @@ export class ScheduleService {
           partType: PartType;
           slots: Array<
             AssignmentSlot & {
-              participant?: { id: string; name: string } | null;
+              participant?: {
+                id: string;
+                name: string;
+                phone: string | null;
+              } | null;
             }
           >;
         }

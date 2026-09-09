@@ -77,7 +77,7 @@
 
 📄 [Detalhes](./tasks/task-08-week-view-whatsapp-navigation.md)
 
-- [ ] 8.1 Create `whatsapp.ts` helper with phone normalization and message builder
-- [ ] 8.2 Add WhatsApp button beside Sugerir/Limpar when assignee has phone
-- [ ] 8.3 Week footer: prev/next links within month only
-- [ ] 8.4 Touch-only horizontal swipe between weeks; disabled on last week, first week, and when picker open
+- [x] 8.1 Create `whatsapp.ts` helper with phone normalization and message builder
+- [x] 8.2 Add WhatsApp button beside Sugerir/Limpar when assignee has phone
+- [x] 8.3 Week footer: prev/next links within month only
+- [x] 8.4 Touch-only horizontal swipe between weeks; disabled on last week, first week, and when picker open
