@@ -1,9 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": ["API_ORIGIN", "JWT_SECRET"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
+      "env": ["API_ORIGIN", "JWT_SECRET"]
     },
     "dev": {
       "cache": false,
