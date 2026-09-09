@@ -39,6 +39,7 @@ describe('validateHardAssignRules', () => {
     sex: Sex.MALE,
     privilege: Privilege.ELDER,
     rolePreference: RolePreference.ANY,
+    qualified: false,
     titularCount: 0,
     ajudanteCount: 0,
     dirigenteCount: 0,
@@ -58,8 +59,46 @@ describe('validateHardAssignRules', () => {
     sex: Sex.FEMALE,
     privilege: Privilege.BAPTIZED,
     rolePreference: RolePreference.ANY,
+    qualified: false,
     titularCount: 1,
     ajudanteCount: 2,
+    dirigenteCount: 0,
+    leitorCount: 0,
+  };
+
+  const oracao: PartTypeRules = {
+    code: 'ORACAO_INICIAL',
+    allowedSexes: [Sex.MALE],
+    privileges: [
+      Privilege.ELDER,
+      Privilege.MINISTERIAL_SERVANT,
+      Privilege.BAPTIZED,
+    ],
+    roles: [AssignmentRole.TITULAR],
+    countsAsMinistryPractice: false,
+  };
+
+  const estudo: PartTypeRules = {
+    code: 'ESTUDO_BIBLICO',
+    allowedSexes: [Sex.MALE],
+    privileges: [
+      Privilege.ELDER,
+      Privilege.MINISTERIAL_SERVANT,
+      Privilege.BAPTIZED,
+    ],
+    roles: [AssignmentRole.DIRIGENTE, AssignmentRole.LEITOR],
+    countsAsMinistryPractice: false,
+  };
+
+  const baptizedMale: ParticipantRules = {
+    id: '4',
+    name: 'Batizado',
+    sex: Sex.MALE,
+    privilege: Privilege.BAPTIZED,
+    rolePreference: RolePreference.ANY,
+    qualified: false,
+    titularCount: 0,
+    ajudanteCount: 0,
     dirigenteCount: 0,
     leitorCount: 0,
   };
@@ -109,6 +148,61 @@ describe('validateHardAssignRules', () => {
         femaleAssignmentCountInWeek: 0,
       }),
     ).toBe('ROLE_PREFERENCE');
+  });
+
+  it('rejects unqualified baptized on prayer', () => {
+    expect(
+      validateHardAssignRules({
+        partType: oracao,
+        participant: baptizedMale,
+        role: AssignmentRole.TITULAR,
+        femaleAssignmentCountInWeek: 0,
+      }),
+    ).toBe('PRIVILEGE_NOT_ALLOWED');
+  });
+
+  it('allows qualified baptized on prayer', () => {
+    expect(
+      validateHardAssignRules({
+        partType: oracao,
+        participant: { ...baptizedMale, qualified: true },
+        role: AssignmentRole.TITULAR,
+        femaleAssignmentCountInWeek: 0,
+      }),
+    ).toBeNull();
+  });
+
+  it('allows elder on prayer', () => {
+    expect(
+      validateHardAssignRules({
+        partType: oracao,
+        participant: elder,
+        role: AssignmentRole.TITULAR,
+        femaleAssignmentCountInWeek: 0,
+      }),
+    ).toBeNull();
+  });
+
+  it('rejects qualified baptized as study conductor', () => {
+    expect(
+      validateHardAssignRules({
+        partType: estudo,
+        participant: { ...baptizedMale, qualified: true },
+        role: AssignmentRole.DIRIGENTE,
+        femaleAssignmentCountInWeek: 0,
+      }),
+    ).toBe('PRIVILEGE_NOT_ALLOWED');
+  });
+
+  it('allows qualified baptized as study reader', () => {
+    expect(
+      validateHardAssignRules({
+        partType: estudo,
+        participant: { ...baptizedMale, qualified: true },
+        role: AssignmentRole.LEITOR,
+        femaleAssignmentCountInWeek: 0,
+      }),
+    ).toBeNull();
   });
 });
 
@@ -247,6 +341,7 @@ describe('sortSuggestionCandidates', () => {
       sex: Sex.MALE,
       privilege: Privilege.PUBLISHER,
       rolePreference: RolePreference.ANY,
+      qualified: false,
       titularCount: 5,
       ajudanteCount: 0,
       dirigenteCount: 0,

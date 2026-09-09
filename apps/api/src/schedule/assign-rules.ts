@@ -10,6 +10,8 @@ export const STUDY_PART_CODE = 'ESTUDO_BIBLICO';
 
 const ORACAO_PART_CODES = new Set(['ORACAO_INICIAL', 'ORACAO_FINAL']);
 
+const PRAYER_CODES = ['ORACAO_INICIAL', 'ORACAO_FINAL'] as const;
+
 export type AssignmentCountCategory =
   | 'presidente'
   | 'oracao'
@@ -50,11 +52,59 @@ export type ParticipantRules = {
   sex: Sex;
   privilege: Privilege;
   rolePreference: RolePreference;
+  qualified: boolean;
   titularCount: number;
   ajudanteCount: number;
   dirigenteCount: number;
   leitorCount: number;
 };
+
+function usesQualifiedPrivilegeRule(
+  partTypeCode: string,
+  role: AssignmentRole,
+): boolean {
+  if (ORACAO_PART_CODES.has(partTypeCode)) {
+    return true;
+  }
+  return (
+    partTypeCode === STUDY_PART_CODE &&
+    (role === AssignmentRole.LEITOR || role === AssignmentRole.DIRIGENTE)
+  );
+}
+
+export function isPrivilegeEligibleForPart(input: {
+  partTypeCode: string;
+  role: AssignmentRole;
+  privilege: Privilege;
+  qualified: boolean;
+}): boolean {
+  const { partTypeCode, role, privilege, qualified } = input;
+
+  if (PRAYER_CODES.includes(partTypeCode as (typeof PRAYER_CODES)[number])) {
+    return (
+      privilege === Privilege.ELDER ||
+      privilege === Privilege.MINISTERIAL_SERVANT ||
+      (privilege === Privilege.BAPTIZED && qualified)
+    );
+  }
+
+  if (partTypeCode === STUDY_PART_CODE && role === AssignmentRole.LEITOR) {
+    return (
+      privilege === Privilege.ELDER ||
+      privilege === Privilege.MINISTERIAL_SERVANT ||
+      (privilege === Privilege.BAPTIZED && qualified)
+    );
+  }
+
+  if (partTypeCode === STUDY_PART_CODE && role === AssignmentRole.DIRIGENTE) {
+    return (
+      privilege === Privilege.ELDER ||
+      privilege === Privilege.MINISTERIAL_SERVANT
+    );
+  }
+
+  return true;
+}
 
 /** Hard validation error codes for assign. */
 export type AssignHardRejectReason =
@@ -227,7 +277,18 @@ export function validateHardAssignRules(input: {
     return 'SEX_NOT_ALLOWED';
   }
 
-  if (!partType.privileges.includes(participant.privilege)) {
+  if (usesQualifiedPrivilegeRule(partType.code, role)) {
+    if (
+      !isPrivilegeEligibleForPart({
+        partTypeCode: partType.code,
+        role,
+        privilege: participant.privilege,
+        qualified: participant.qualified,
+      })
+    ) {
+      return 'PRIVILEGE_NOT_ALLOWED';
+    }
+  } else if (!partType.privileges.includes(participant.privilege)) {
     return 'PRIVILEGE_NOT_ALLOWED';
   }
 

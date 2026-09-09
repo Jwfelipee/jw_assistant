@@ -34,10 +34,10 @@
 
 📄 [Detalhes](./tasks/task-03-eligibility-qualified-rules.md)
 
-- [ ] 3.1 Add `isPrivilegeEligibleForPart()` for prayer, book reader, and conductor
-- [ ] 3.2 Integrate into `validateHardAssignRules` with `qualified` on `ParticipantRules`
-- [ ] 3.3 Update seed privileges for `ORACAO_*` and `ESTUDO_BIBLICO` LEITOR path
-- [ ] 3.4 Tests: qualified/unqualified batizado for prayer and leitor; conductor unchanged
+- [x] 3.1 Add `isPrivilegeEligibleForPart()` for prayer, book reader, and conductor
+- [x] 3.2 Integrate into `validateHardAssignRules` with `qualified` on `ParticipantRules`
+- [x] 3.3 Update seed privileges for `ORACAO_*` and `ESTUDO_BIBLICO` LEITOR path
+- [x] 3.4 Tests: qualified/unqualified batizado for prayer and leitor; conductor unchanged
 
 ## 4. Eligible participants API enriched
 

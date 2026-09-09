@@ -1218,6 +1218,7 @@ export class ScheduleService {
     sex: string;
     privilege: string;
     rolePreference: string;
+    qualified: boolean;
     titularCount: number;
     ajudanteCount: number;
     dirigenteCount: number;
@@ -1229,6 +1230,7 @@ export class ScheduleService {
       sex: p.sex as never,
       privilege: p.privilege as never,
       rolePreference: p.rolePreference as never,
+      qualified: p.qualified,
       titularCount: p.titularCount,
       ajudanteCount: p.ajudanteCount,
       dirigenteCount: p.dirigenteCount,
