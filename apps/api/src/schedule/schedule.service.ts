@@ -33,12 +33,15 @@ import {
   buildRepeatMonthAlert,
   counterFieldForCategory,
   counterKeyForRole,
+  getCategoryCounter,
   hardRejectMessage,
   isStudyPartType,
   resolveCountCategory,
+  sortEligibleParticipants,
   sortSuggestionCandidates,
   validateHardAssignRules,
   type AssignHardRejectReason,
+  type AssignmentCountCategory,
   type SoftAlert,
   type ParticipantRules,
 } from './assign-rules';
@@ -122,6 +125,11 @@ type EligibleParticipantView = {
   name: string;
   sex: string;
   privilege: string;
+  phone: string | null;
+  assignedThisWeek: boolean;
+  countsThisMonth: Partial<Record<AssignmentCountCategory, number>>;
+  countsTotal: Partial<Record<AssignmentCountCategory, number>>;
+  /** @deprecated use countsTotal[sortCategory] */
   counter: number;
 };
 
@@ -660,7 +668,15 @@ export class ScheduleService {
       ? eligibleRules.filter((p) => p.id !== excludeParticipantId)
       : eligibleRules;
 
-    const sorted = sortSuggestionCandidates(filtered, role as never);
+    const sortCategory = resolveCountCategory({
+      partTypeCode: part.partType.code,
+      partTopic: part.partType.topic as PartTopic,
+      role: role as never,
+      participantSex: Sex.MALE,
+    });
+    const sorted = sortCategory
+      ? sortSuggestionCandidates(filtered, sortCategory)
+      : filtered;
     const suggestion = sorted[0] ?? null;
 
     return {
@@ -672,7 +688,9 @@ export class ScheduleService {
             name: suggestion.name,
             sex: suggestion.sex,
             privilege: suggestion.privilege,
-            counter: suggestion[counterKeyForRole(role as never)],
+            counter: sortCategory
+              ? getCategoryCounter(suggestion, sortCategory)
+              : suggestion[counterKeyForRole(role as never)],
           }
         : null,
       candidatesCount: sorted.length,
@@ -684,13 +702,54 @@ export class ScheduleService {
     const { eligible, ineligibleVisible } =
       await this.buildParticipantEligibilityForSlot(slot);
 
-    const sortedEligible = [...eligible].sort((a, b) =>
-      a.name.localeCompare(b.name, 'pt-BR'),
+    const monthId = slot.weekPart.week.monthId;
+    const weekId = slot.weekPart.weekId;
+    const partType = slot.weekPart.partType;
+    const sortCategory = resolveCountCategory({
+      partTypeCode: partType.code,
+      partTopic: partType.topic as PartTopic,
+      role: slot.role as never,
+      participantSex: Sex.MALE,
+    });
+
+    const participantIds = eligible.map((p) => p.id);
+    const countMaps = await this.buildParticipantCountMaps(
+      participantIds,
+      monthId,
     );
+    const weekAssignmentCounts =
+      await this.countWeekAssignmentsForParticipants(
+        participantIds,
+        weekId,
+        slot.id,
+      );
+
+    const enriched: EligibleParticipantView[] = eligible.map((p) => {
+      const counts = countMaps.get(p.id) ?? { month: {}, total: {} };
+      const assignedThisWeek = (weekAssignmentCounts.get(p.id) ?? 0) > 0;
+      return {
+        id: p.id,
+        name: p.name,
+        sex: p.sex,
+        privilege: p.privilege,
+        phone: p.phone,
+        assignedThisWeek,
+        countsThisMonth: counts.month,
+        countsTotal: counts.total,
+        counter: sortCategory ? (counts.total[sortCategory] ?? 0) : 0,
+      };
+    });
+
+    const sortedEligible = sortCategory
+      ? sortEligibleParticipants(enriched, sortCategory)
+      : [...enriched].sort((a, b) =>
+          a.name.localeCompare(b.name, 'pt-BR'),
+        );
 
     return {
       slotId: slot.id,
       role: slot.role,
+      sortCategory,
       eligible: sortedEligible,
       ineligibleVisible,
     };
@@ -911,11 +970,138 @@ export class ScheduleService {
         name: p.name,
         sex: p.sex,
         privilege: p.privilege,
+        phone: p.phone ?? null,
+        assignedThisWeek: false,
+        countsThisMonth: {},
+        countsTotal: {},
         counter: rules[counterKeyForRole(role as never)],
       });
     }
 
     return { eligible, eligibleRules, ineligibleVisible };
+  }
+
+  private async buildParticipantCountMaps(
+    participantIds: string[],
+    monthId: string,
+  ): Promise<
+    Map<
+      string,
+      {
+        month: Partial<Record<AssignmentCountCategory, number>>;
+        total: Partial<Record<AssignmentCountCategory, number>>;
+      }
+    >
+  > {
+    const result = new Map<
+      string,
+      {
+        month: Partial<Record<AssignmentCountCategory, number>>;
+        total: Partial<Record<AssignmentCountCategory, number>>;
+      }
+    >();
+
+    for (const id of participantIds) {
+      result.set(id, { month: {}, total: {} });
+    }
+
+    if (participantIds.length === 0) {
+      return result;
+    }
+
+    const slots = await prisma.assignmentSlot.findMany({
+      where: { participantId: { in: participantIds } },
+      select: {
+        participantId: true,
+        role: true,
+        participant: { select: { sex: true } },
+        weekPart: {
+          select: {
+            week: { select: { monthId: true } },
+            partType: { select: { code: true, topic: true } },
+          },
+        },
+      },
+    });
+
+    const raw = new Map<
+      string,
+      {
+        month: Record<string, number>;
+        total: Record<string, number>;
+      }
+    >();
+
+    for (const slot of slots) {
+      if (!slot.participantId || !slot.participant) continue;
+
+      const category = resolveCountCategory({
+        partTypeCode: slot.weekPart.partType.code,
+        partTopic: slot.weekPart.partType.topic as PartTopic,
+        role: slot.role as AssignmentRole,
+        participantSex: slot.participant.sex as Sex,
+      });
+      if (!category) continue;
+
+      const entry = raw.get(slot.participantId) ?? { month: {}, total: {} };
+      entry.total[category] = (entry.total[category] ?? 0) + 1;
+      if (slot.weekPart.week.monthId === monthId) {
+        entry.month[category] = (entry.month[category] ?? 0) + 1;
+      }
+      raw.set(slot.participantId, entry);
+    }
+
+    for (const [id, { month, total }] of raw) {
+      result.set(id, {
+        month: this.omitZeroCountKeys(month),
+        total: this.omitZeroCountKeys(total),
+      });
+    }
+
+    return result;
+  }
+
+  private omitZeroCountKeys(
+    counts: Record<string, number>,
+  ): Partial<Record<AssignmentCountCategory, number>> {
+    const out: Partial<Record<AssignmentCountCategory, number>> = {};
+    for (const [key, value] of Object.entries(counts)) {
+      if (value > 0) {
+        out[key as AssignmentCountCategory] = value;
+      }
+    }
+    return out;
+  }
+
+  private async countWeekAssignmentsForParticipants(
+    participantIds: string[],
+    weekId: string,
+    excludingSlotId: string,
+  ): Promise<Map<string, number>> {
+    const counts = new Map<string, number>();
+    for (const id of participantIds) {
+      counts.set(id, 0);
+    }
+    if (participantIds.length === 0) {
+      return counts;
+    }
+
+    const rows = await prisma.assignmentSlot.groupBy({
+      by: ['participantId'],
+      where: {
+        participantId: { in: participantIds },
+        id: { not: excludingSlotId },
+        weekPart: { weekId },
+      },
+      _count: { _all: true },
+    });
+
+    for (const row of rows) {
+      if (row.participantId) {
+        counts.set(row.participantId, row._count._all);
+      }
+    }
+    return counts;
   }
 
   private async createWeekWithTemplate(input: {
@@ -1223,6 +1409,9 @@ export class ScheduleService {
     ajudanteCount: number;
     dirigenteCount: number;
     leitorCount: number;
+    presidenteCount?: number;
+    oracaoCount?: number;
+    ministerioCount?: number;
   }): ParticipantRules {
     return {
       id: p.id,
@@ -1235,6 +1424,9 @@ export class ScheduleService {
       ajudanteCount: p.ajudanteCount,
       dirigenteCount: p.dirigenteCount,
       leitorCount: p.leitorCount,
+      presidenteCount: p.presidenteCount ?? 0,
+      oracaoCount: p.oracaoCount ?? 0,
+      ministerioCount: p.ministerioCount ?? 0,
     };
   }
 

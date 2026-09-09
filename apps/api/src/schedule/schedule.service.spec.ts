@@ -19,7 +19,9 @@ jest.mock('@jw/database', () => {
     prisma: {
       assignmentSlot: {
         findUnique: jest.fn(),
+        findMany: jest.fn(),
         count: jest.fn(),
+        groupBy: jest.fn(),
       },
       participant: {
         findMany: jest.fn(),
@@ -180,6 +182,8 @@ describe('ScheduleService.getEligibleParticipants', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedPrisma.assignmentSlot.count.mockResolvedValue(0);
+    mockedPrisma.assignmentSlot.findMany.mockResolvedValue([]);
+    mockedPrisma.assignmentSlot.groupBy.mockResolvedValue([]);
   });
 
   it('throws 404 when slot does not exist', async () => {
@@ -273,21 +277,67 @@ describe('ScheduleService.getEligibleParticipants', () => {
     ]);
   });
 
-  it('includes eligible participant with correct counter and sorts by name', async () => {
+  it('includes enriched fields, sortCategory, and sorts by month/total counts', async () => {
     mockSlot(fsmPartType);
     mockedPrisma.participant.findMany.mockResolvedValue([
-      { ...elder, id: 'p-z', name: 'Zeca', titularCount: 5 },
-      { ...elder, id: 'p-a', name: 'Ana', titularCount: 1 },
+      { ...elder, id: 'p-z', name: 'Zeca', ministerioCount: 5 },
+      { ...elder, id: 'p-a', name: 'Ana', ministerioCount: 1 },
+    ]);
+    mockedPrisma.assignmentSlot.findMany.mockResolvedValue([
+      {
+        participantId: 'p-a',
+        role: AssignmentRole.TITULAR,
+        participant: { sex: Sex.MALE },
+        weekPart: {
+          week: { monthId: 'month-1' },
+          partType: { code: 'FSM_INICIANDO', topic: PartTopic.MINISTRY },
+        },
+      },
+      {
+        participantId: 'p-z',
+        role: AssignmentRole.TITULAR,
+        participant: { sex: Sex.MALE },
+        weekPart: {
+          week: { monthId: 'month-1' },
+          partType: { code: 'FSM_INICIANDO', topic: PartTopic.MINISTRY },
+        },
+      },
+      {
+        participantId: 'p-z',
+        role: AssignmentRole.TITULAR,
+        participant: { sex: Sex.MALE },
+        weekPart: {
+          week: { monthId: 'month-1' },
+          partType: { code: 'FSM_INICIANDO', topic: PartTopic.MINISTRY },
+        },
+      },
+      {
+        participantId: 'p-z',
+        role: AssignmentRole.TITULAR,
+        participant: { sex: Sex.MALE },
+        weekPart: {
+          week: { monthId: 'other-month' },
+          partType: { code: 'FSM_INICIANDO', topic: PartTopic.MINISTRY },
+        },
+      },
+    ]);
+    mockedPrisma.assignmentSlot.groupBy.mockResolvedValue([
+      { participantId: 'p-z', _count: { _all: 1 } },
     ]);
 
     const result = await service.getEligibleParticipants(slotId);
 
+    expect(result.sortCategory).toBe('ministerio');
     expect(result.eligible).toEqual([
       {
         id: 'p-a',
         name: 'Ana',
         sex: Sex.MALE,
         privilege: Privilege.ELDER,
+        phone: null,
+        assignedThisWeek: false,
+        countsThisMonth: { ministerio: 1 },
+        countsTotal: { ministerio: 1 },
         counter: 1,
       },
       {
@@ -295,7 +345,11 @@ describe('ScheduleService.getEligibleParticipants', () => {
         name: 'Zeca',
         sex: Sex.MALE,
         privilege: Privilege.ELDER,
-        counter: 5,
+        phone: null,
+        assignedThisWeek: true,
+        countsThisMonth: { ministerio: 2 },
+        countsTotal: { ministerio: 3 },
+        counter: 3,
       },
     ]);
     expect(result.slotId).toBe(slotId);
@@ -414,6 +468,9 @@ describe('ScheduleService.suggestForPart', () => {
     dirigenteCount: 0,
     leitorCount: 0,
     ministryPracticeCount: 0,
+    ministerioCount: 1,
+    presidenteCount: 0,
+    oracaoCount: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
     absences: [],
@@ -424,6 +481,7 @@ describe('ScheduleService.suggestForPart', () => {
     id: 'p-high',
     name: 'Zeca',
     titularCount: 5,
+    ministerioCount: 5,
   };
 
   function mockPart() {

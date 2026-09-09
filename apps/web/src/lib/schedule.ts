@@ -62,11 +62,24 @@ export type SuggestResult = {
   candidatesCount: number;
 };
 
+export type AssignmentCountCategory =
+  | "presidente"
+  | "oracao"
+  | "titular"
+  | "dirigente"
+  | "ajudante"
+  | "ministerio";
+
 export type EligibleParticipant = {
   id: string;
   name: string;
   sex: string;
   privilege: string;
+  phone: string | null;
+  assignedThisWeek: boolean;
+  countsThisMonth: Partial<Record<AssignmentCountCategory, number>>;
+  countsTotal: Partial<Record<AssignmentCountCategory, number>>;
+  /** @deprecated use countsTotal[sortCategory] */
   counter: number;
 };
 
@@ -80,6 +93,7 @@ export type IneligibleVisible = {
 export type EligibleParticipantsResult = {
   slotId: string;
   role: AssignmentRole;
+  sortCategory: AssignmentCountCategory | null;
   eligible: EligibleParticipant[];
   ineligibleVisible: IneligibleVisible[];
 };

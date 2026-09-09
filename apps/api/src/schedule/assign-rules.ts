@@ -57,6 +57,9 @@ export type ParticipantRules = {
   ajudanteCount: number;
   dirigenteCount: number;
   leitorCount: number;
+  presidenteCount: number;
+  oracaoCount: number;
+  ministerioCount: number;
 };
 
 function usesQualifiedPrivilegeRule(
@@ -249,6 +252,13 @@ export function getRoleCounter(
   return participant[counterKeyForRole(role)];
 }
 
+export function getCategoryCounter(
+  participant: ParticipantRules,
+  category: AssignmentCountCategory,
+): number {
+  return participant[counterFieldForCategory(category)];
+}
+
 /**
  * Validate hard assign rules (except absences — checked separately).
  * Returns null when OK, or a reject reason.
@@ -368,17 +378,43 @@ export function buildMixedSexAlert(input: {
   };
 }
 
-/** Sort eligible candidates: lowest role counter, then name. */
+/** Sort eligible candidates: lowest category counter, then name. */
 export function sortSuggestionCandidates<T extends ParticipantRules>(
   candidates: T[],
-  role: AssignmentRole,
+  sortCategory: AssignmentCountCategory,
 ): T[] {
   return [...candidates].sort((a, b) => {
-    const ca = getRoleCounter(a, role);
-    const cb = getRoleCounter(b, role);
+    const ca = getCategoryCounter(a, sortCategory);
+    const cb = getCategoryCounter(b, sortCategory);
     if (ca !== cb) {
       return ca - cb;
     }
+    return a.name.localeCompare(b.name, 'pt-BR');
+  });
+}
+
+export type EligibleParticipantSortView = {
+  name: string;
+  assignedThisWeek: boolean;
+  countsThisMonth: Partial<Record<AssignmentCountCategory, number>>;
+  countsTotal: Partial<Record<AssignmentCountCategory, number>>;
+};
+
+/** Sort eligible participants for picker: week-assigned last, then month/total asc, then name. */
+export function sortEligibleParticipants<T extends EligibleParticipantSortView>(
+  eligible: T[],
+  sortCategory: AssignmentCountCategory,
+): T[] {
+  return [...eligible].sort((a, b) => {
+    if (a.assignedThisWeek !== b.assignedThisWeek) {
+      return a.assignedThisWeek ? 1 : -1;
+    }
+    const am = a.countsThisMonth[sortCategory] ?? 0;
+    const bm = b.countsThisMonth[sortCategory] ?? 0;
+    if (am !== bm) return am - bm;
+    const at = a.countsTotal[sortCategory] ?? 0;
+    const bt = b.countsTotal[sortCategory] ?? 0;
+    if (at !== bt) return at - bt;
     return a.name.localeCompare(b.name, 'pt-BR');
   });
 }

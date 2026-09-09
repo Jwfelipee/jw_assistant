@@ -44,6 +44,9 @@ describe('validateHardAssignRules', () => {
     ajudanteCount: 0,
     dirigenteCount: 0,
     leitorCount: 0,
+    presidenteCount: 0,
+    oracaoCount: 0,
+    ministerioCount: 0,
   };
 
   const publisherMale: ParticipantRules = {
@@ -64,6 +67,9 @@ describe('validateHardAssignRules', () => {
     ajudanteCount: 2,
     dirigenteCount: 0,
     leitorCount: 0,
+    presidenteCount: 0,
+    oracaoCount: 0,
+    ministerioCount: 0,
   };
 
   const oracao: PartTypeRules = {
@@ -101,6 +107,9 @@ describe('validateHardAssignRules', () => {
     ajudanteCount: 0,
     dirigenteCount: 0,
     leitorCount: 0,
+    presidenteCount: 0,
+    oracaoCount: 0,
+    ministerioCount: 0,
   };
 
   it('rejects publicador on Tesouros (privilege)', () => {
@@ -346,14 +355,17 @@ describe('sortSuggestionCandidates', () => {
       ajudanteCount: 0,
       dirigenteCount: 0,
       leitorCount: 0,
+      presidenteCount: 0,
+      oracaoCount: 0,
+      ministerioCount: 5,
     };
     const b: ParticipantRules = {
       ...a,
       id: 'b',
       name: 'Ana',
-      titularCount: 1,
+      ministerioCount: 1,
     };
-    const sorted = sortSuggestionCandidates([a, b], AssignmentRole.TITULAR);
+    const sorted = sortSuggestionCandidates([a, b], 'ministerio');
     expect(sorted[0].id).toBe('b');
   });
 });

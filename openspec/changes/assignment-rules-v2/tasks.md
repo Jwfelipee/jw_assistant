@@ -43,11 +43,11 @@
 
 📄 [Detalhes](./tasks/task-04-eligible-participants-api.md)
 
-- [ ] 4.1 Add aggregation query for month/total counts per category per participant
-- [ ] 4.2 Extend `GET /slots/:id/eligible-participants` response with counts, `sortCategory`, `assignedThisWeek`
-- [ ] 4.3 Implement sort: week-assigned last, then relevant count asc (month, then total, then name)
-- [ ] 4.4 Update `sortSuggestionCandidates` to use new categories
-- [ ] 4.5 Update web types in `apps/web/src/lib/schedule.ts`
+- [x] 4.1 Add aggregation query for month/total counts per category per participant
+- [x] 4.2 Extend `GET /slots/:id/eligible-participants` response with counts, `sortCategory`, `assignedThisWeek`
+- [x] 4.3 Implement sort: week-assigned last, then relevant count asc (month, then total, then name)
+- [x] 4.4 Update `sortSuggestionCandidates` to use new categories
+- [x] 4.5 Update web types in `apps/web/src/lib/schedule.ts`
 
 ## 5. Female alert and inline confirmation
 
