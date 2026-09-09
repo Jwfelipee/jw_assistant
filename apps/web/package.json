@@ -16,7 +16,7 @@
     "@ducanh2912/next-pwa": "^10.2.9",
     "@jw/shared": "workspace:*",
     "jose": "^6.2.10",
-    "next": "15.3.3",
+    "next": "15.3.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -27,7 +27,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.3.3",
+    "eslint-config-next": "15.3.9",
     "tailwindcss": "^4",
     "typescript": "^5",
     "webpack": "^5.110.3"
