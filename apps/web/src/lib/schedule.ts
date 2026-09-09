@@ -70,6 +70,46 @@ export type AssignmentCountCategory =
   | "ajudante"
   | "ministerio";
 
+export const ASSIGNMENT_COUNT_CATEGORY_LABELS: Record<
+  AssignmentCountCategory,
+  string
+> = {
+  titular: "Titular",
+  dirigente: "Dirigente",
+  ajudante: "Ajudante",
+  presidente: "Presidente",
+  ministerio: "Ministério",
+  oracao: "Oração",
+};
+
+const ASSIGNMENT_COUNT_COLUMN_ORDER: AssignmentCountCategory[] = [
+  "titular",
+  "dirigente",
+  "ajudante",
+  "presidente",
+  "ministerio",
+  "oracao",
+];
+
+export function buildVisibleCountColumns(
+  sortCategory: AssignmentCountCategory | null,
+  month: Partial<Record<AssignmentCountCategory, number>>,
+  total: Partial<Record<AssignmentCountCategory, number>>,
+): AssignmentCountCategory[] {
+  const withValues = ASSIGNMENT_COUNT_COLUMN_ORDER.filter(
+    (category) => (month[category] ?? 0) > 0 || (total[category] ?? 0) > 0,
+  );
+
+  if (!sortCategory || !withValues.includes(sortCategory)) {
+    return withValues;
+  }
+
+  return [
+    sortCategory,
+    ...withValues.filter((category) => category !== sortCategory),
+  ];
+}
+
 export type EligibleParticipant = {
   id: string;
   name: string;

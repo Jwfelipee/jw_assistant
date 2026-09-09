@@ -69,9 +69,9 @@
 
 📄 [Detalhes](./tasks/task-07-participant-picker-counts.md)
 
-- [ ] 7.1 Render compact Este mês / Total table per eligible row
-- [ ] 7.2 Column order: sortCategory first, then Titular → Dirigente → Ajudante → Presidente → Ministério → Oração; hide all-zero columns
-- [ ] 7.3 Expose `onOpenChange` from picker for swipe guard
+- [x] 7.1 Render compact Este mês / Total table per eligible row
+- [x] 7.2 Column order: sortCategory first, then Titular → Dirigente → Ajudante → Presidente → Ministério → Oração; hide all-zero columns
+- [x] 7.3 Expose `onOpenChange` from picker for swipe guard
 
 ## 8. Week view WhatsApp and navigation
 

@@ -12,7 +12,10 @@ import {
 import { Privilege } from "@jw/shared";
 import { PRIVILEGE_LABELS } from "@/lib/participants";
 import {
+  ASSIGNMENT_COUNT_CATEGORY_LABELS,
+  buildVisibleCountColumns,
   listEligibleParticipants,
+  type AssignmentCountCategory,
   type EligibleParticipant,
   type EligibleParticipantsResult,
   type IneligibleVisible,
@@ -26,6 +29,7 @@ export type ParticipantPickerProps = {
   disabled?: boolean;
   busy?: boolean;
   onSelect: (participantId: string, participantName: string) => void;
+  onOpenChange?: (open: boolean) => void;
 };
 
 const pickerFieldClass = `${fieldClass} min-h-[44px] text-[var(--text-base)] disabled:cursor-not-allowed disabled:opacity-60`;
@@ -53,6 +57,7 @@ export function ParticipantPicker({
   disabled = false,
   busy = false,
   onSelect,
+  onOpenChange,
 }: ParticipantPickerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -78,7 +83,8 @@ export function ParticipantPicker({
     setIsOpen(false);
     setQuery("");
     setHighlightIndex(-1);
-  }, []);
+    onOpenChange?.(false);
+  }, [onOpenChange]);
 
   const loadParticipants = useCallback(async () => {
     setLoading(true);
@@ -102,10 +108,11 @@ export function ParticipantPicker({
     if (isDisabled) return;
     setIsOpen(true);
     setHighlightIndex(-1);
+    onOpenChange?.(true);
     if (!data || data.slotId !== slotId) {
       void loadParticipants();
     }
-  }, [data, isDisabled, loadParticipants, slotId]);
+  }, [data, isDisabled, loadParticipants, onOpenChange, slotId]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -251,6 +258,7 @@ export function ParticipantPicker({
                   key={participant.id}
                   id={`${listboxId}-option-${index}`}
                   participant={participant}
+                  sortCategory={data?.sortCategory ?? null}
                   highlighted={index === highlightIndex}
                   onSelect={() => selectParticipant(participant)}
                   onHover={() => setHighlightIndex(index)}
@@ -282,9 +290,80 @@ export function ParticipantPicker({
   );
 }
 
+type ParticipantCountTableProps = {
+  sortCategory: AssignmentCountCategory | null;
+  countsThisMonth: Partial<Record<AssignmentCountCategory, number>>;
+  countsTotal: Partial<Record<AssignmentCountCategory, number>>;
+};
+
+function ParticipantCountTable({
+  sortCategory,
+  countsThisMonth,
+  countsTotal,
+}: ParticipantCountTableProps) {
+  const columns = buildVisibleCountColumns(
+    sortCategory,
+    countsThisMonth,
+    countsTotal,
+  );
+
+  if (columns.length === 0) {
+    return null;
+  }
+
+  return (
+    <table className="w-full text-xs">
+      <thead>
+        <tr>
+          <th className="pr-[var(--space-2)] text-left font-medium text-[var(--muted)]">
+            Quando
+          </th>
+          {columns.map((category) => (
+            <th
+              key={category}
+              className="px-[var(--space-1)] text-center font-medium text-[var(--muted)]"
+            >
+              {ASSIGNMENT_COUNT_CATEGORY_LABELS[category]}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="pr-[var(--space-2)] text-left text-[var(--muted)]">
+            Este mês
+          </td>
+          {columns.map((category) => (
+            <td
+              key={category}
+              className="px-[var(--space-1)] text-center tabular-nums text-[var(--ink)]"
+            >
+              {countsThisMonth[category] ?? 0}
+            </td>
+          ))}
+        </tr>
+        <tr>
+          <td className="pr-[var(--space-2)] text-left text-[var(--muted)]">
+            Total
+          </td>
+          {columns.map((category) => (
+            <td
+              key={category}
+              className="px-[var(--space-1)] text-center tabular-nums text-[var(--ink)]"
+            >
+              {countsTotal[category] ?? 0}
+            </td>
+          ))}
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
 type EligibleOptionProps = {
   id: string;
   participant: EligibleParticipant;
+  sortCategory: AssignmentCountCategory | null;
   highlighted: boolean;
   onSelect: () => void;
   onHover: () => void;
@@ -293,6 +372,7 @@ type EligibleOptionProps = {
 function EligibleOption({
   id,
   participant,
+  sortCategory,
   highlighted,
   onSelect,
   onHover,
@@ -315,14 +395,16 @@ function EligibleOption({
         <span className="text-[var(--text-base)] text-[var(--ink)]">
           {participant.name}
         </span>
-        <span className="flex shrink-0 items-center gap-[var(--space-2)]">
-          <span className="rounded-[var(--radius-sm)] border border-[var(--line)] px-[var(--space-2)] py-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
-            {privilegeLabel(participant.privilege)}
-          </span>
-          <span className="tabular-nums text-[var(--text-sm)] text-[var(--muted)]">
-            {participant.counter}
-          </span>
+        <span className="shrink-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-[var(--space-2)] py-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
+          {privilegeLabel(participant.privilege)}
         </span>
+      </div>
+      <div className="mt-[var(--space-2)] overflow-x-auto">
+        <ParticipantCountTable
+          sortCategory={sortCategory}
+          countsThisMonth={participant.countsThisMonth}
+          countsTotal={participant.countsTotal}
+        />
       </div>
     </li>
   );
