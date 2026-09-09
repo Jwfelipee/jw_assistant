@@ -86,11 +86,15 @@ model Participant {
   sex                   Sex
   privilege             Privilege
   rolePreference        RolePreference @default(ANY)
+  qualified             Boolean        @default(false)
   titularCount          Int            @default(0)
   ajudanteCount         Int            @default(0)
   dirigenteCount        Int            @default(0)
   leitorCount           Int            @default(0)
   ministryPracticeCount Int            @default(0)
+  presidenteCount       Int            @default(0)
+  oracaoCount           Int            @default(0)
+  ministerioCount       Int            @default(0)
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 

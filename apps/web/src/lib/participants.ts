@@ -11,6 +11,9 @@ export type ParticipantCounters = {
   dirigente: number;
   leitor: number;
   ministryPractice: number;
+  presidente: number;
+  oracao: number;
+  ministerio: number;
 };
 
 export type AssociationView = {
@@ -28,6 +31,7 @@ export type ParticipantListItem = {
   sex: Sex;
   privilege: Privilege;
   rolePreference: RolePreference;
+  qualified: boolean;
   counters: ParticipantCounters;
 };
 
@@ -53,6 +57,7 @@ export type ParticipantInput = {
   sex: Sex;
   privilege: Privilege;
   rolePreference: RolePreference;
+  qualified?: boolean;
 };
 
 export const SEX_LABELS: Record<Sex, string> = {
@@ -131,6 +136,7 @@ export async function createParticipant(
       sex: input.sex,
       privilege: input.privilege,
       rolePreference: input.rolePreference,
+      qualified: input.qualified,
     }),
   });
   if (!res.ok) {
@@ -153,6 +159,7 @@ export async function updateParticipant(
       sex: input.sex,
       privilege: input.privilege,
       rolePreference: input.rolePreference,
+      qualified: input.qualified,
     }),
   });
   if (!res.ok) {

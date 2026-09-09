@@ -22,6 +22,9 @@ export type ParticipantCounters = {
   dirigente: number;
   leitor: number;
   ministryPractice: number;
+  presidente: number;
+  oracao: number;
+  ministerio: number;
 };
 
 export type AssociationView = {
@@ -39,6 +42,7 @@ export type ParticipantListItem = {
   sex: Sex;
   privilege: Privilege;
   rolePreference: RolePreference;
+  qualified: boolean;
   counters: ParticipantCounters;
 };
 
@@ -88,6 +92,7 @@ export class ParticipantsService {
         sex: dto.sex,
         privilege: dto.privilege,
         rolePreference: dto.rolePreference ?? 'ANY',
+        qualified: this.resolveQualified(dto.privilege, dto.qualified),
       },
     });
 
@@ -115,6 +120,7 @@ export class ParticipantsService {
       sex?: Sex;
       privilege?: Privilege;
       rolePreference?: RolePreference;
+      qualified?: boolean;
     } = {};
 
     if (dto.name !== undefined) {
@@ -132,6 +138,10 @@ export class ParticipantsService {
     if (dto.rolePreference !== undefined) {
       data.rolePreference = dto.rolePreference;
     }
+    data.qualified = this.resolveQualified(
+      privilege,
+      dto.qualified ?? existing.qualified,
+    );
 
     const row = await prisma.participant.update({
       where: { id },
@@ -312,6 +322,16 @@ export class ParticipantsService {
     return idA < idB ? [idA, idB] : [idB, idA];
   }
 
+  private resolveQualified(
+    privilege: Privilege,
+    qualified?: boolean,
+  ): boolean {
+    if (privilege !== SharedPrivilege.BAPTIZED) {
+      return false;
+    }
+    return qualified ?? false;
+  }
+
   private toListItem(row: Participant): ParticipantListItem {
     return {
       id: row.id,
@@ -320,12 +340,16 @@ export class ParticipantsService {
       sex: row.sex,
       privilege: row.privilege,
       rolePreference: row.rolePreference,
+      qualified: row.qualified,
       counters: {
         titular: row.titularCount,
         ajudante: row.ajudanteCount,
         dirigente: row.dirigenteCount,
         leitor: row.leitorCount,
         ministryPractice: row.ministryPracticeCount,
+        presidente: row.presidenteCount,
+        oracao: row.oracaoCount,
+        ministerio: row.ministerioCount,
       },
     };
   }

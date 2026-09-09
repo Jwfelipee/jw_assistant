@@ -17,9 +17,9 @@
 
 📄 [Detalhes](./tasks/task-01-schema-and-migration.md)
 
-- [ ] 1.1 Add `qualified`, `presidenteCount`, `oracaoCount`, `ministerioCount` to Prisma schema and shared types
-- [ ] 1.2 Create migration and update DTOs (`CreateParticipantDto`, `UpdateParticipantDto`, `ParticipantInput`)
-- [ ] 1.3 Update `participants.service.ts` to persist `qualified` (ignore when privilege ≠ BAPTIZED)
+- [x] 1.1 Add `qualified`, `presidenteCount`, `oracaoCount`, `ministerioCount` to Prisma schema and shared types
+- [x] 1.2 Create migration and update DTOs (`CreateParticipantDto`, `UpdateParticipantDto`, `ParticipantInput`)
+- [x] 1.3 Update `participants.service.ts` to persist `qualified` (ignore when privilege ≠ BAPTIZED)
 
 ## 2. Count taxonomy and recalculation
 
