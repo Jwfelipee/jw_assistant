@@ -1,0 +1,22 @@
+{
+  "name": "jw_assistant",
+  "user": "ubuntu",
+  "install": "bash scripts/cloud-agent-install.sh",
+  "start": "bash scripts/cloud-agent-start.sh",
+  "terminals": [
+    {
+      "name": "api",
+      "command": "pnpm --filter api dev",
+      "description": "Nest API (watch mode) on http://localhost:3001"
+    },
+    {
+      "name": "web",
+      "command": "pnpm --filter web dev",
+      "description": "Next.js dev server on http://localhost:3000 (proxies /api -> API)"
+    }
+  ],
+  "ports": [
+    { "name": "web", "port": 3000 },
+    { "name": "api", "port": 3001 }
+  ]
+}
