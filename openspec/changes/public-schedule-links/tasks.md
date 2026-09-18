@@ -40,17 +40,17 @@
 
 📄 [Detalhes](./tasks/task-04-public-web-pages.md)
 
-- [ ] 4.1 Add four paths to `PUBLIC_PATHS` in `apps/web/src/middleware.ts`
-- [ ] 4.2 Create `(public)` route group with minimal layout and four pages
-- [ ] 4.3 Build `PublicScheduleListView` (mobile list, empty slots as `—`)
-- [ ] 4.4 Build `PublicSchedulePrintView` (S-140-like HTML) with list/print toggle and `window.print()`
-- [ ] 4.5 Handle disabled-link and empty-schedule states; smoke test all four URLs unauthenticated
+- [x] 4.1 Add four paths to `PUBLIC_PATHS` in `apps/web/src/middleware.ts`
+- [x] 4.2 Create `(public)` route group with minimal layout and four pages
+- [x] 4.3 Build `PublicScheduleListView` (mobile list, empty slots as `—`)
+- [x] 4.4 Build `PublicSchedulePrintView` (S-140-like HTML) with list/print toggle and `window.print()`
+- [x] 4.5 Handle disabled-link and empty-schedule states; smoke test all four URLs unauthenticated
 
 ## 5. Settings UI for public links
 
 📄 [Detalhes](./tasks/task-05-settings-public-links-ui.md)
 
-- [ ] 5.1 Create `PublicLinksSection` component with URL display, copy button, and enable toggle per link
-- [ ] 5.2 Integrate section into `/settings` page below congregation form
-- [ ] 5.3 Persist toggles via existing `PATCH /settings`; show visual state when link is disabled
-- [ ] 5.4 Smoke test: copy URL, disable link, verify public page shows disabled state
+- [x] 5.1 Create `PublicLinksSection` component with URL display, copy button, and enable toggle per link
+- [x] 5.2 Integrate section into `/settings` page below congregation form
+- [x] 5.3 Persist toggles via existing `PATCH /settings`; show visual state when link is disabled
+- [x] 5.4 Smoke test: copy URL, disable link, verify public page shows disabled state
