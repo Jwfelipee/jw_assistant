@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchMe } from "@/lib/auth";
-import { fetchSettings, type CongregationSettings } from "@/lib/settings";
+import { PublicLinksSection } from "@/components/public-links-section";
+import {
+  fetchSettings,
+  updateSettingsRequest,
+  type CongregationSettings,
+} from "@/lib/settings";
 import { pageMainNarrowClass } from "@/lib/ui";
 import { SettingsForm } from "./settings-form";
 
@@ -64,7 +69,23 @@ export default function SettingsPage() {
           {loadError}
         </p>
       ) : settings ? (
-        <SettingsForm initial={settings} />
+        <>
+          <SettingsForm
+            initial={settings}
+            onSaved={setSettings}
+          />
+          <PublicLinksSection
+            settings={settings}
+            onUpdate={async (patch) => {
+              const result = await updateSettingsRequest({
+                ...settings,
+                ...patch,
+              });
+              if (result.ok) setSettings(result.settings);
+              else throw new Error(result.message);
+            }}
+          />
+        </>
       ) : null}
 
       <Link

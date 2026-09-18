@@ -5,6 +5,10 @@ import type { UpdateSettingsDto } from './dto/update-settings.dto';
 export type SettingsResponse = {
   congregationName: string;
   meetingWeekday: Weekday;
+  publicLinkCurrentWeekEnabled: boolean;
+  publicLinkNextWeekEnabled: boolean;
+  publicLinkCurrentMonthEnabled: boolean;
+  publicLinkNextMonthEnabled: boolean;
 };
 
 @Injectable()
@@ -18,7 +22,7 @@ export class SettingsService {
       throw new NotFoundException('Configurações da congregação não encontradas');
     }
 
-    return this.toResponse(settings.name, settings.meetingWeekday);
+    return this.toResponse(settings);
   }
 
   async update(dto: UpdateSettingsDto): Promise<SettingsResponse> {
@@ -30,24 +34,57 @@ export class SettingsService {
       throw new NotFoundException('Configurações da congregação não encontradas');
     }
 
+    const data: {
+      name?: string;
+      meetingWeekday?: Weekday;
+      publicLinkCurrentWeekEnabled?: boolean;
+      publicLinkNextWeekEnabled?: boolean;
+      publicLinkCurrentMonthEnabled?: boolean;
+      publicLinkNextMonthEnabled?: boolean;
+    } = {};
+
+    if (dto.congregationName !== undefined) {
+      data.name = dto.congregationName.trim();
+    }
+    if (dto.meetingWeekday !== undefined) {
+      data.meetingWeekday = dto.meetingWeekday;
+    }
+    if (dto.publicLinkCurrentWeekEnabled !== undefined) {
+      data.publicLinkCurrentWeekEnabled = dto.publicLinkCurrentWeekEnabled;
+    }
+    if (dto.publicLinkNextWeekEnabled !== undefined) {
+      data.publicLinkNextWeekEnabled = dto.publicLinkNextWeekEnabled;
+    }
+    if (dto.publicLinkCurrentMonthEnabled !== undefined) {
+      data.publicLinkCurrentMonthEnabled = dto.publicLinkCurrentMonthEnabled;
+    }
+    if (dto.publicLinkNextMonthEnabled !== undefined) {
+      data.publicLinkNextMonthEnabled = dto.publicLinkNextMonthEnabled;
+    }
+
     const updated = await prisma.congregationSettings.update({
       where: { id: 1 },
-      data: {
-        name: dto.congregationName.trim(),
-        meetingWeekday: dto.meetingWeekday,
-      },
+      data,
     });
 
-    return this.toResponse(updated.name, updated.meetingWeekday);
+    return this.toResponse(updated);
   }
 
-  private toResponse(
-    name: string,
-    meetingWeekday: Weekday,
-  ): SettingsResponse {
+  private toResponse(settings: {
+    name: string;
+    meetingWeekday: Weekday;
+    publicLinkCurrentWeekEnabled: boolean;
+    publicLinkNextWeekEnabled: boolean;
+    publicLinkCurrentMonthEnabled: boolean;
+    publicLinkNextMonthEnabled: boolean;
+  }): SettingsResponse {
     return {
-      congregationName: name,
-      meetingWeekday,
+      congregationName: settings.name,
+      meetingWeekday: settings.meetingWeekday,
+      publicLinkCurrentWeekEnabled: settings.publicLinkCurrentWeekEnabled,
+      publicLinkNextWeekEnabled: settings.publicLinkNextWeekEnabled,
+      publicLinkCurrentMonthEnabled: settings.publicLinkCurrentMonthEnabled,
+      publicLinkNextMonthEnabled: settings.publicLinkNextMonthEnabled,
     };
   }
 }

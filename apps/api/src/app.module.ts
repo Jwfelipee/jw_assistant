@@ -10,6 +10,7 @@ import { CatalogModule } from './catalog/catalog.module';
 import { AuthGuard } from './common/guards/auth.guard';
 import { ParticipantsModule } from './participants/participants.module';
 import { PdfModule } from './pdf/pdf.module';
+import { PublicScheduleModule } from './public-schedule/public-schedule.module';
 import { ScheduleModule } from './schedule/schedule.module';
 import { SettingsModule } from './settings/settings.module';
 
@@ -29,6 +30,7 @@ import { SettingsModule } from './settings/settings.module';
     AbsencesModule,
     CatalogModule,
     ScheduleModule,
+    PublicScheduleModule,
     PdfModule,
   ],
   controllers: [AppController],
