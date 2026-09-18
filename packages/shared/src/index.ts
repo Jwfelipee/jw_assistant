@@ -35,3 +35,10 @@ export {
   type YearMonth,
   type WeekCalendarRow,
 } from "./calendar/weeks";
+
+export {
+  isoWeekBoundsForDate,
+  addIsoWeeks,
+  dateInIsoWeek,
+  type IsoWeekBounds,
+} from "./calendar/iso-week";

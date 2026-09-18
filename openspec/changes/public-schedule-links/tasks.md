@@ -23,9 +23,9 @@
 
 📄 [Detalhes](./tasks/task-02-iso-week-helpers.md)
 
-- [ ] 2.1 Create `packages/shared/src/calendar/iso-week.ts` with `isoWeekBoundsForDate` and `addIsoWeeks`
-- [ ] 2.2 Export helpers from `@jw/shared` index
-- [ ] 2.3 Add unit tests covering week boundaries, year rollover, and post-meeting-day scenario
+- [x] 2.1 Create `packages/shared/src/calendar/iso-week.ts` with `isoWeekBoundsForDate` and `addIsoWeeks`
+- [x] 2.2 Export helpers from `@jw/shared` index
+- [x] 2.3 Add unit tests covering week boundaries, year rollover, and post-meeting-day scenario
 
 ## 3. Public schedule API
 
