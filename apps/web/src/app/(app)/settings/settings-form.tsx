@@ -39,6 +39,10 @@ export function SettingsForm({ initial }: Props) {
     const result = await updateSettingsRequest({
       congregationName: trimmed,
       meetingWeekday,
+      publicLinkCurrentWeekEnabled: initial.publicLinkCurrentWeekEnabled,
+      publicLinkNextWeekEnabled: initial.publicLinkNextWeekEnabled,
+      publicLinkCurrentMonthEnabled: initial.publicLinkCurrentMonthEnabled,
+      publicLinkNextMonthEnabled: initial.publicLinkNextMonthEnabled,
     });
     setPending(false);
 

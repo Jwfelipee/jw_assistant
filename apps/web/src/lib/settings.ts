@@ -3,6 +3,10 @@ import { Weekday } from "@jw/shared";
 export type CongregationSettings = {
   congregationName: string;
   meetingWeekday: Weekday;
+  publicLinkCurrentWeekEnabled: boolean;
+  publicLinkNextWeekEnabled: boolean;
+  publicLinkCurrentMonthEnabled: boolean;
+  publicLinkNextMonthEnabled: boolean;
 };
 
 export async function fetchSettings(): Promise<CongregationSettings | null> {

@@ -14,10 +14,10 @@
 
 📄 [Detalhes](./tasks/task-01-schema-and-public-link-settings.md)
 
-- [ ] 1.1 Add four `publicLink*Enabled` boolean fields to `CongregationSettings` in Prisma schema with migration (default `true`)
-- [ ] 1.2 Extend `SettingsService`, DTO, and controller to read/write the four flags
-- [ ] 1.3 Update `apps/web/src/lib/settings.ts` types and settings form payload
-- [ ] 1.4 Add unit tests for settings GET/PATCH including new fields
+- [x] 1.1 Add four `publicLink*Enabled` boolean fields to `CongregationSettings` in Prisma schema with migration (default `true`)
+- [x] 1.2 Extend `SettingsService`, DTO, and controller to read/write the four flags
+- [x] 1.3 Update `apps/web/src/lib/settings.ts` types and settings form payload
+- [x] 1.4 Add unit tests for settings GET/PATCH including new fields
 
 ## 2. ISO week resolution helpers
 
