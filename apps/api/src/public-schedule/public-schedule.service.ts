@@ -8,6 +8,8 @@ import {
   type WeekPart,
 } from '@jw/database';
 import {
+  AssignmentRole as SharedAssignmentRole,
+  PartTopic as SharedPartTopic,
   addIsoWeeks,
   addMonths,
   currentYearMonth,
@@ -49,18 +51,18 @@ const LINK_FLAG_BY_SCOPE: Record<
   'next-month': 'publicLinkNextMonthEnabled',
 };
 
-const ROLE_LABELS: Record<AssignmentRole, string> = {
-  [AssignmentRole.TITULAR]: 'Titular',
-  [AssignmentRole.AJUDANTE]: 'Ajudante',
-  [AssignmentRole.DIRIGENTE]: 'Dirigente',
-  [AssignmentRole.LEITOR]: 'Leitor',
+const ROLE_LABELS: Record<SharedAssignmentRole, string> = {
+  [SharedAssignmentRole.TITULAR]: 'Titular',
+  [SharedAssignmentRole.AJUDANTE]: 'Ajudante',
+  [SharedAssignmentRole.DIRIGENTE]: 'Dirigente',
+  [SharedAssignmentRole.LEITOR]: 'Leitor',
 };
 
-const TOPIC_LABELS: Record<PartTopic, string> = {
-  [PartTopic.OUT_OF_TOPIC]: 'Abertura e encerramento',
-  [PartTopic.TREASURES]: 'Tesouros da Palavra de Deus',
-  [PartTopic.MINISTRY]: 'Faça seu melhor no ministério',
-  [PartTopic.CHRISTIAN_LIFE]: 'Nossa vida cristã',
+const TOPIC_LABELS: Record<SharedPartTopic, string> = {
+  [SharedPartTopic.OUT_OF_TOPIC]: 'Abertura e encerramento',
+  [SharedPartTopic.TREASURES]: 'Tesouros da Palavra de Deus',
+  [SharedPartTopic.MINISTRY]: 'Faça seu melhor no ministério',
+  [SharedPartTopic.CHRISTIAN_LIFE]: 'Nossa vida cristã',
 };
 
 type WeekWithParts = {
@@ -237,11 +239,13 @@ export class PublicScheduleService {
 
     const slots = part.slots.map((slot) => this.toPublicSlotView(slot));
 
+    const topic = part.topic as SharedPartTopic;
+
     return {
       partTypeLabel,
       title: part.title,
-      topic: part.topic,
-      topicLabel: TOPIC_LABELS[part.topic],
+      topic,
+      topicLabel: TOPIC_LABELS[topic],
       slots,
     };
   }
@@ -262,9 +266,11 @@ export class PublicScheduleService {
         ? slot.participantName
         : (slot.participant?.name ?? null);
 
+    const role = slot.role as SharedAssignmentRole;
+
     return {
-      role: slot.role,
-      roleLabel: ROLE_LABELS[slot.role],
+      role,
+      roleLabel: ROLE_LABELS[role],
       participantName,
     };
   }
