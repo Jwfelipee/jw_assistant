@@ -11,9 +11,10 @@ import { btnPrimaryLg, btnRowClass, fieldClass } from "@/lib/ui";
 
 type Props = {
   initial: CongregationSettings;
+  onSaved?: (settings: CongregationSettings) => void;
 };
 
-export function SettingsForm({ initial }: Props) {
+export function SettingsForm({ initial, onSaved }: Props) {
   const [congregationName, setCongregationName] = useState(
     initial.congregationName,
   );
@@ -53,6 +54,7 @@ export function SettingsForm({ initial }: Props) {
 
     setCongregationName(result.settings.congregationName);
     setMeetingWeekday(result.settings.meetingWeekday);
+    onSaved?.(result.settings);
     setSaved(true);
   }
 
