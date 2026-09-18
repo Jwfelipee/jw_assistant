@@ -31,10 +31,10 @@
 
 📄 [Detalhes](./tasks/task-03-public-schedule-api.md)
 
-- [ ] 3.1 Create `PublicScheduleService` with scope resolvers and sanitized DTO mapper (no phone)
-- [ ] 3.2 Implement `PublicScheduleController` with four `@Public()` GET endpoints
-- [ ] 3.3 Return 404 when link disabled; set `Cache-Control: public, max-age=60`
-- [ ] 3.4 Add service/controller unit tests for all scopes and disabled-link behavior
+- [x] 3.1 Create `PublicScheduleService` with scope resolvers and sanitized DTO mapper (no phone)
+- [x] 3.2 Implement `PublicScheduleController` with four `@Public()` GET endpoints
+- [x] 3.3 Return 404 when link disabled; set `Cache-Control: public, max-age=60`
+- [x] 3.4 Add service/controller unit tests for all scopes and disabled-link behavior
 
 ## 4. Public web pages and middleware
 
