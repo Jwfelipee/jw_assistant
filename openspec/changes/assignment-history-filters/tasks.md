@@ -22,9 +22,9 @@
 
 📄 [Detalhes](./tasks/task-02-history-api-tests.md)
 
-- [ ] 2.1 Add service or e2e tests for sex and partTypeId filters
-- [ ] 2.2 Add tests for studyRole DIRIGENTE, LEITOR, BOTH
-- [ ] 2.3 Add tests for lastPerParticipant with and without date range
+- [x] 2.1 Add service or e2e tests for sex and partTypeId filters
+- [x] 2.2 Add tests for studyRole DIRIGENTE, LEITOR, BOTH
+- [x] 2.3 Add tests for lastPerParticipant with and without date range
 
 ## 3. History filters UI
 
