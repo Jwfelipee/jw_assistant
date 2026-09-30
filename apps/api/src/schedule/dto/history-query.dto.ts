@@ -1,5 +1,6 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
@@ -7,7 +8,13 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { AssignmentRole, PartTopic } from '@jw/shared';
+import { AssignmentRole, PartTopic, Sex } from '@jw/shared';
+
+export enum StudyHistoryRole {
+  DIRIGENTE = 'DIRIGENTE',
+  LEITOR = 'LEITOR',
+  BOTH = 'BOTH',
+}
 
 export class HistoryQueryDto {
   @IsOptional()
@@ -33,6 +40,23 @@ export class HistoryQueryDto {
   @IsOptional()
   @IsEnum(AssignmentRole)
   role?: AssignmentRole;
+
+  @IsOptional()
+  @IsEnum(Sex)
+  sex?: Sex;
+
+  @IsOptional()
+  @IsString()
+  partTypeId?: string;
+
+  @IsOptional()
+  @IsEnum(StudyHistoryRole)
+  studyRole?: StudyHistoryRole;
+
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  lastPerParticipant?: boolean;
 
   @IsOptional()
   @Type(() => Number)

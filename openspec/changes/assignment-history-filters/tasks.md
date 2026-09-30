@@ -13,10 +13,10 @@
 
 📄 [Detalhes](./tasks/task-01-history-api-filters.md)
 
-- [ ] 1.1 Extend `HistoryQueryDto` with `sex`, `partTypeId`, `studyRole`, `lastPerParticipant`
-- [ ] 1.2 Implement filter predicates in `schedule.service.history` (sex, part type, study roles)
-- [ ] 1.3 Implement `lastPerParticipant` branch with DISTINCT ON and correct total count
-- [ ] 1.4 Extend `HistoryQuery` / `fetchAssignmentHistory` in `apps/web/src/lib/schedule.ts`
+- [x] 1.1 Extend `HistoryQueryDto` with `sex`, `partTypeId`, `studyRole`, `lastPerParticipant`
+- [x] 1.2 Implement filter predicates in `schedule.service.history` (sex, part type, study roles)
+- [x] 1.3 Implement `lastPerParticipant` branch with DISTINCT ON and correct total count
+- [x] 1.4 Extend `HistoryQuery` / `fetchAssignmentHistory` in `apps/web/src/lib/schedule.ts`
 
 ## 2. History API tests
 

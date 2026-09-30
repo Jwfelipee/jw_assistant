@@ -59,8 +59,8 @@ Usar `class-transformer` para `lastPerParticipant` vindo de query string.
 
 ### Critérios de aceite
 
-- [ ] Validação rejeita valores inválidos com 400
-- [ ] Params antigos continuam aceitos
+- [x] Validação rejeita valores inválidos com 400
+- [x] Params antigos continuam aceitos
 
 ### Não fazer
 
@@ -86,8 +86,8 @@ Aplicar `from`/`to` em `week.meetingDate` como já existe.
 
 ### Critérios de aceite
 
-- [ ] Filtros combinam com AND
-- [ ] Slots sem participante continuam excluídos (`participantId: { not: null }`)
+- [x] Filtros combinam com AND
+- [x] Slots sem participante continuam excluídos (`participantId: { not: null }`)
 
 ---
 
@@ -114,9 +114,9 @@ Garantir que **com** `from`/`to`, S já está restrito ao período antes do dist
 
 ### Critérios de aceite
 
-- [ ] Dois slots Joias do mesmo irmão no período → uma linha (data mais recente no período)
-- [ ] Paginação `page`/`limit` aplica-se ao conjunto agregado
-- [ ] Ordenação por data desc igual ao modo flat
+- [x] Dois slots Joias do mesmo irmão no período → uma linha (data mais recente no período)
+- [x] Paginação `page`/`limit` aplica-se ao conjunto agregado
+- [x] Ordenação por data desc igual ao modo flat
 
 ### Não fazer
 
@@ -146,7 +146,7 @@ Atualizar `fetchAssignmentHistory` para serializar os novos params (`lastPerPart
 
 ### Critérios de aceite
 
-- [ ] Query string correta para todos os novos campos
+- [x] Query string correta para todos os novos campos
 
 ---
 
