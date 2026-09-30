@@ -1,33 +1,72 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import { AssignmentRole, PartTopic } from "@jw/shared";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { AssignmentRole, PartTopic, Sex } from "@jw/shared";
+import { listPartTypes, type PartTypeDto } from "@/lib/catalog";
 import {
   ROLE_LABELS,
   TOPIC_LABELS,
   fetchAssignmentHistory,
   formatDateBr,
   type HistoryItem,
+  type StudyHistoryRole,
 } from "@/lib/schedule";
 import { btnOutline, btnPrimary, btnRowClass, btnSecondary, fieldClass } from "@/lib/ui";
+
+const STUDY_PART_CODE = "ESTUDO_BIBLICO";
 
 type Filters = {
   q: string;
   from: string;
   to: string;
-  topic: string;
+  partTypeId: string;
+  sex: string;
   role: string;
+  studyRole: string;
+  lastPerParticipant: boolean;
 };
 
 const emptyFilters: Filters = {
   q: "",
   from: "",
   to: "",
-  topic: "",
+  partTypeId: "",
+  sex: "",
   role: "",
+  studyRole: "",
+  lastPerParticipant: false,
 };
 
+function buildHistoryQuery(
+  f: Filters,
+  partTypes: PartTypeDto[],
+  page: number,
+  limit: number,
+) {
+  const selected = f.partTypeId
+    ? partTypes.find((pt) => pt.id === f.partTypeId)
+    : undefined;
+  const isStudy = selected?.code === STUDY_PART_CODE;
+
+  return {
+    q: f.q || undefined,
+    from: f.from || undefined,
+    to: f.to || undefined,
+    partTypeId: f.partTypeId || undefined,
+    sex: f.sex ? (f.sex as Sex) : undefined,
+    lastPerParticipant: f.lastPerParticipant ? true : undefined,
+    ...(isStudy && f.studyRole
+      ? { studyRole: f.studyRole as StudyHistoryRole }
+      : f.role
+        ? { role: f.role as AssignmentRole }
+        : {}),
+    page,
+    limit,
+  };
+}
+
 export function AssignmentHistoryView() {
+  const [partTypes, setPartTypes] = useState<PartTypeDto[]>([]);
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [applied, setApplied] = useState<Filters>(emptyFilters);
   const [items, setItems] = useState<HistoryItem[]>([]);
@@ -37,47 +76,98 @@ export function AssignmentHistoryView() {
   const [loading, setLoading] = useState(true);
   const limit = 20;
 
-  const load = useCallback(async (f: Filters, p: number) => {
-    setError(null);
-    setLoading(true);
-    try {
-      const result = await fetchAssignmentHistory({
-        q: f.q || undefined,
-        from: f.from || undefined,
-        to: f.to || undefined,
-        topic: f.topic ? (f.topic as PartTopic) : undefined,
-        role: f.role ? (f.role as AssignmentRole) : undefined,
-        page: p,
-        limit,
-      });
-      setItems(result.items);
-      setTotal(result.total);
-      setPage(result.page);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Não foi possível carregar o histórico.",
-      );
-    } finally {
-      setLoading(false);
+  const partTypesByTopic = useMemo(() => {
+    const sorted = [...partTypes].sort(
+      (a, b) => a.defaultSortOrder - b.defaultSortOrder,
+    );
+    const groups = new Map<PartTopic, PartTypeDto[]>();
+    for (const pt of sorted) {
+      const list = groups.get(pt.topic) ?? [];
+      list.push(pt);
+      groups.set(pt.topic, list);
     }
-  }, []);
+    return groups;
+  }, [partTypes]);
+
+  const filterSelectedPartType = filters.partTypeId
+    ? partTypes.find((pt) => pt.id === filters.partTypeId)
+    : undefined;
+  const showStudyRoleSelect =
+    filterSelectedPartType?.code === STUDY_PART_CODE;
+
+  const load = useCallback(
+    async (f: Filters, p: number, catalog: PartTypeDto[]) => {
+      setError(null);
+      setLoading(true);
+      try {
+        const result = await fetchAssignmentHistory(
+          buildHistoryQuery(f, catalog, p, limit),
+        );
+        setItems(result.items);
+        setTotal(result.total);
+        setPage(result.page);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Não foi possível carregar o histórico.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
-    void load(emptyFilters, 1);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await listPartTypes();
+        if (cancelled) return;
+        const sorted = [...rows].sort(
+          (a, b) => a.defaultSortOrder - b.defaultSortOrder,
+        );
+        setPartTypes(sorted);
+        void load(emptyFilters, 1, sorted);
+      } catch (err) {
+        if (cancelled) return;
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Não foi possível carregar o catálogo.",
+        );
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   function onSearch(event: FormEvent) {
     event.preventDefault();
     setApplied(filters);
-    void load(filters, 1);
+    void load(filters, 1, partTypes);
   }
 
   function onClear() {
     setFilters(emptyFilters);
     setApplied(emptyFilters);
-    void load(emptyFilters, 1);
+    void load(emptyFilters, 1, partTypes);
+  }
+
+  function onPartTypeChange(partTypeId: string) {
+    setFilters((prev) => {
+      const pt = partTypes.find((p) => p.id === partTypeId);
+      const isStudy = pt?.code === STUDY_PART_CODE;
+      return {
+        ...prev,
+        partTypeId,
+        role: isStudy ? "" : prev.role,
+        studyRole: isStudy ? prev.studyRole : "",
+      };
+    });
   }
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -125,38 +215,96 @@ export function AssignmentHistoryView() {
           </label>
         </div>
         <label className="text-[var(--text-sm)] text-[var(--muted)]">
-          Tópico
+          Designação
           <select
             className={`${fieldClass} mt-[var(--space-1)]`}
-            value={filters.topic}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, topic: e.target.value }))
-            }
+            value={filters.partTypeId}
+            onChange={(e) => onPartTypeChange(e.target.value)}
           >
-            <option value="">Todos</option>
-            {Object.values(PartTopic).map((topic) => (
-              <option key={topic} value={topic}>
-                {TOPIC_LABELS[topic]}
-              </option>
-            ))}
+            <option value="">Todas as designações</option>
+            {Object.values(PartTopic).map((topic) => {
+              const types = partTypesByTopic.get(topic);
+              if (!types?.length) return null;
+              return (
+                <optgroup key={topic} label={TOPIC_LABELS[topic]}>
+                  {types.map((pt) => (
+                    <option key={pt.id} value={pt.id}>
+                      {pt.label}
+                    </option>
+                  ))}
+                </optgroup>
+              );
+            })}
           </select>
         </label>
         <label className="text-[var(--text-sm)] text-[var(--muted)]">
-          Papel
+          Sexo
           <select
             className={`${fieldClass} mt-[var(--space-1)]`}
-            value={filters.role}
+            value={filters.sex}
             onChange={(e) =>
-              setFilters((prev) => ({ ...prev, role: e.target.value }))
+              setFilters((prev) => ({ ...prev, sex: e.target.value }))
             }
           >
             <option value="">Todos</option>
-            {Object.values(AssignmentRole).map((role) => (
-              <option key={role} value={role}>
-                {ROLE_LABELS[role]}
-              </option>
-            ))}
+            <option value={Sex.MALE}>Homens</option>
+            <option value={Sex.FEMALE}>Mulheres</option>
           </select>
+        </label>
+        {showStudyRoleSelect ? (
+          <label className="text-[var(--text-sm)] text-[var(--muted)]">
+            Papel no estudo
+            <select
+              className={`${fieldClass} mt-[var(--space-1)]`}
+              value={filters.studyRole}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, studyRole: e.target.value }))
+              }
+            >
+              <option value="">Todos os papéis</option>
+              <option value="DIRIGENTE">Dirigente</option>
+              <option value="LEITOR">Leitor</option>
+              <option value="BOTH">Dirigente e leitor</option>
+            </select>
+          </label>
+        ) : (
+          <label className="text-[var(--text-sm)] text-[var(--muted)]">
+            Papel
+            <select
+              className={`${fieldClass} mt-[var(--space-1)]`}
+              value={filters.role}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, role: e.target.value }))
+              }
+            >
+              <option value="">Todos</option>
+              {Object.values(AssignmentRole).map((role) => (
+                <option key={role} value={role}>
+                  {ROLE_LABELS[role]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <label className="flex items-start gap-[var(--space-2)] text-[var(--text-sm)] text-[var(--muted)]">
+          <input
+            type="checkbox"
+            className="mt-[var(--space-1)]"
+            checked={filters.lastPerParticipant}
+            onChange={(e) =>
+              setFilters((prev) => ({
+                ...prev,
+                lastPerParticipant: e.target.checked,
+              }))
+            }
+          />
+          <span>
+            Apenas a última designação de cada participante
+            <span className="mt-[var(--space-1)] block text-[var(--text-xs)]">
+              Com período definido, considera a última designação dentro do
+              intervalo.
+            </span>
+          </span>
         </label>
         <div className={btnRowClass}>
           <button type="submit" className={btnPrimary} disabled={loading}>
@@ -199,8 +347,8 @@ export function AssignmentHistoryView() {
                     {item.participantName ?? "—"}
                   </p>
                   <p className="text-[var(--text-sm)] text-[var(--muted)]">
-                    {formatDateBr(item.meetingDate)} · {ROLE_LABELS[item.role]} ·{" "}
-                    {item.partTypeLabel}
+                    {formatDateBr(item.meetingDate)} · {ROLE_LABELS[item.role]}{" "}
+                    · {item.partTypeLabel}
                   </p>
                   <p className="text-[var(--text-sm)] text-[var(--muted)]">
                     {TOPIC_LABELS[item.partTopic]}
@@ -217,7 +365,7 @@ export function AssignmentHistoryView() {
                   type="button"
                   className={btnSecondary}
                   disabled={page <= 1 || loading}
-                  onClick={() => void load(applied, page - 1)}
+                  onClick={() => void load(applied, page - 1, partTypes)}
                 >
                   Anterior
                 </button>
@@ -228,7 +376,7 @@ export function AssignmentHistoryView() {
                   type="button"
                   className={btnSecondary}
                   disabled={page >= totalPages || loading}
-                  onClick={() => void load(applied, page + 1)}
+                  onClick={() => void load(applied, page + 1, partTypes)}
                 >
                   Próxima
                 </button>

@@ -30,10 +30,10 @@
 
 📄 [Detalhes](./tasks/task-03-history-filters-ui.md)
 
-- [ ] 3.1 Load catalog part types and build designation dropdown with “Todas as designações”
-- [ ] 3.2 Add sex filter and last-per-participant checkbox
-- [ ] 3.3 Add Estudo bíblico role control (Dirigente / Leitor / Dirigente e leitor)
-- [ ] 3.4 Remove standalone topic filter; wire new params to API
+- [x] 3.1 Load catalog part types and build designation dropdown with “Todas as designações”
+- [x] 3.2 Add sex filter and last-per-participant checkbox
+- [x] 3.3 Add Estudo bíblico role control (Dirigente / Leitor / Dirigente e leitor)
+- [x] 3.4 Remove standalone topic filter; wire new params to API
 
 ## 4. History filters smoke
 
