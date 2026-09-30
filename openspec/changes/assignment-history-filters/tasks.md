@@ -39,5 +39,5 @@
 
 📄 [Detalhes](./tasks/task-04-history-filters-smoke.md)
 
-- [ ] 4.1 Manual smoke: sex + Joias + última por participante com período
-- [ ] 4.2 Manual smoke: Estudo bíblico papéis e paginação
+- [x] 4.1 Manual smoke: sex + Joias + última por participante com período
+- [x] 4.2 Manual smoke: Estudo bíblico papéis e paginação
