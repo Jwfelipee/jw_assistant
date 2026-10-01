@@ -9,12 +9,18 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
-import { Privilege } from "@jw/shared";
-import { PRIVILEGE_LABELS } from "@/lib/participants";
+import { AssignmentRole, Privilege, Sex } from "@jw/shared";
+import {
+  PRIVILEGE_LABELS,
+  listParticipantAssignments,
+  type AssignmentHistoryItem,
+} from "@/lib/participants";
+import { ParticipantAssignmentStrip } from "@/components/participant-assignment-strip";
 import {
   ASSIGNMENT_COUNT_CATEGORY_LABELS,
   buildVisibleCountColumns,
   listEligibleParticipants,
+  ROLE_LABELS,
   type AssignmentCountCategory,
   type EligibleParticipant,
   type EligibleParticipantsResult,
@@ -33,6 +39,35 @@ export type ParticipantPickerProps = {
 };
 
 const pickerFieldClass = `${fieldClass} min-h-[44px] text-[var(--text-base)] disabled:cursor-not-allowed disabled:opacity-60`;
+
+const filterSelectClass = `${fieldClass} min-h-[44px] w-full text-[var(--text-sm)]`;
+
+type PickerFilters = {
+  sex: "" | Sex.MALE | Sex.FEMALE;
+  privilege: "" | Privilege;
+  lastRole: "" | AssignmentRole;
+};
+
+const EMPTY_PICKER_FILTERS: PickerFilters = {
+  sex: "",
+  privilege: "",
+  lastRole: "",
+};
+
+function getSlotFilters(
+  map: Map<string, PickerFilters>,
+  slotId: string,
+): PickerFilters {
+  return map.get(slotId) ?? EMPTY_PICKER_FILTERS;
+}
+
+function hasActivePickerFilters(filters: PickerFilters): boolean {
+  return (
+    filters.sex !== "" ||
+    filters.privilege !== "" ||
+    filters.lastRole !== ""
+  );
+}
 
 function normalizeForSearch(text: string): string {
   return text
@@ -61,6 +96,7 @@ export function ParticipantPicker({
 }: ParticipantPickerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const filtersBySlotRef = useRef<Map<string, PickerFilters>>(new Map());
   const listboxId = useId();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -69,13 +105,71 @@ export function ParticipantPicker({
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<EligibleParticipantsResult | null>(null);
   const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [filters, setFilters] = useState<PickerFilters>(() =>
+    getSlotFilters(filtersBySlotRef.current, slotId),
+  );
+  const assignmentCacheRef = useRef(new Map<string, AssignmentHistoryItem[]>());
+  const assignmentErrorRef = useRef(new Map<string, string>());
+  const assignmentLoadingRef = useRef(new Set<string>());
+  const [assignmentRevision, setAssignmentRevision] = useState(0);
 
   const isDisabled = disabled || busy;
+  const filtersActive = hasActivePickerFilters(filters);
+
+  const ensureParticipantAssignments = useCallback(
+    async (participantId: string) => {
+      if (
+        assignmentCacheRef.current.has(participantId) ||
+        assignmentLoadingRef.current.has(participantId)
+      ) {
+        return;
+      }
+
+      assignmentLoadingRef.current.add(participantId);
+      assignmentErrorRef.current.delete(participantId);
+      setAssignmentRevision((n) => n + 1);
+
+      try {
+        const items = await listParticipantAssignments(participantId);
+        assignmentCacheRef.current.set(participantId, items);
+      } catch (err) {
+        assignmentErrorRef.current.set(
+          participantId,
+          err instanceof Error
+            ? err.message
+            : "Não foi possível carregar designações.",
+        );
+      } finally {
+        assignmentLoadingRef.current.delete(participantId);
+        setAssignmentRevision((n) => n + 1);
+      }
+    },
+    [],
+  );
+
+  const getAssignmentStripState = useCallback(
+    (participantId: string) => {
+      void assignmentRevision;
+      return {
+        assignments: assignmentCacheRef.current.get(participantId),
+        loading: assignmentLoadingRef.current.has(participantId),
+        error: assignmentErrorRef.current.get(participantId) ?? null,
+      };
+    },
+    [assignmentRevision],
+  );
 
   const filteredEligible = useMemo(() => {
     if (!data) return [];
-    return data.eligible.filter((p) => matchesQuery(p.name, query));
-  }, [data, query]);
+    return data.eligible
+      .filter((p) => !filters.sex || p.sex === filters.sex)
+      .filter((p) => !filters.privilege || p.privilege === filters.privilege)
+      .filter((p) => {
+        if (!filters.lastRole) return true;
+        return p.lastAssignment?.role === filters.lastRole;
+      })
+      .filter((p) => matchesQuery(p.name, query));
+  }, [data, filters, query]);
 
   const ineligibleVisible = data?.ineligibleVisible ?? [];
 
@@ -132,7 +226,21 @@ export function ParticipantPicker({
     setError(null);
     setQuery("");
     setHighlightIndex(-1);
+    setFilters(getSlotFilters(filtersBySlotRef.current, slotId));
   }, [slotId]);
+
+  const persistFilters = useCallback(
+    (next: PickerFilters) => {
+      filtersBySlotRef.current.set(slotId, next);
+      setFilters(next);
+      setHighlightIndex(-1);
+    },
+    [slotId],
+  );
+
+  const clearPickerFilters = useCallback(() => {
+    persistFilters(EMPTY_PICKER_FILTERS);
+  }, [persistFilters]);
 
   useEffect(() => {
     if (highlightIndex >= filteredEligible.length) {
@@ -233,6 +341,83 @@ export function ParticipantPicker({
           role="listbox"
           className="absolute z-50 mt-[var(--space-1)] max-h-[min(18rem,calc(100dvh-8rem))] w-full overflow-y-auto rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] shadow-[0_8px_24px_color-mix(in_srgb,var(--ink)_12%,transparent)]"
         >
+          <div
+            className="sticky top-0 z-10 border-b border-[var(--line)] bg-[var(--surface)] p-[var(--space-2)]"
+            onMouseDown={(event) => event.preventDefault()}
+          >
+            <div className="grid grid-cols-1 gap-[var(--space-2)] sm:grid-cols-3">
+              <label className="flex min-w-0 flex-col gap-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
+                Sexo
+                <select
+                  className={filterSelectClass}
+                  value={filters.sex}
+                  aria-label="Filtrar por sexo"
+                  onChange={(event) =>
+                    persistFilters({
+                      ...filters,
+                      sex: event.target.value as PickerFilters["sex"],
+                    })
+                  }
+                >
+                  <option value="">Todos</option>
+                  <option value={Sex.MALE}>Homens</option>
+                  <option value={Sex.FEMALE}>Mulheres</option>
+                </select>
+              </label>
+              <label className="flex min-w-0 flex-col gap-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
+                Privilégio
+                <select
+                  className={filterSelectClass}
+                  value={filters.privilege}
+                  aria-label="Filtrar por privilégio"
+                  onChange={(event) =>
+                    persistFilters({
+                      ...filters,
+                      privilege: event.target.value as PickerFilters["privilege"],
+                    })
+                  }
+                >
+                  <option value="">Todos</option>
+                  {Object.values(Privilege).map((privilege) => (
+                    <option key={privilege} value={privilege}>
+                      {PRIVILEGE_LABELS[privilege]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex min-w-0 flex-col gap-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
+                Última designação
+                <select
+                  className={filterSelectClass}
+                  value={filters.lastRole}
+                  aria-label="Filtrar por última designação"
+                  onChange={(event) =>
+                    persistFilters({
+                      ...filters,
+                      lastRole: event.target.value as PickerFilters["lastRole"],
+                    })
+                  }
+                >
+                  <option value="">Qualquer</option>
+                  {Object.values(AssignmentRole).map((role) => (
+                    <option key={role} value={role}>
+                      {ROLE_LABELS[role]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {filtersActive ? (
+              <button
+                type="button"
+                className="mt-[var(--space-2)] min-h-[44px] w-full rounded-[var(--radius-sm)] border border-[var(--line)] px-[var(--space-2)] text-[var(--text-sm)] text-[var(--ink)] hover:bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface))]"
+                onClick={clearPickerFilters}
+              >
+                Limpar filtros
+              </button>
+            ) : null}
+          </div>
+
           {loading ? (
             <p className="px-[var(--space-3)] py-[var(--space-3)] text-[var(--text-sm)] text-[var(--muted)]">
               Carregando…
@@ -245,10 +430,26 @@ export function ParticipantPicker({
             </p>
           ) : null}
 
-          {!loading && !error && filteredEligible.length === 0 ? (
-            <p className="px-[var(--space-3)] py-[var(--space-3)] text-[var(--text-sm)] text-[var(--muted)]">
-              Nenhum participante elegível
-            </p>
+          {!loading && !error && data && filteredEligible.length === 0 ? (
+            <div className="px-[var(--space-3)] py-[var(--space-3)] text-[var(--text-sm)] text-[var(--muted)]">
+              {data.eligible.length === 0 ? (
+                <p>Nenhum participante elegível</p>
+              ) : (
+                <>
+                  <p>Nenhum participante com esses filtros</p>
+                  {filtersActive ? (
+                    <button
+                      type="button"
+                      className="mt-[var(--space-2)] text-[var(--accent)] underline-offset-2 hover:underline"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={clearPickerFilters}
+                    >
+                      Limpar filtros
+                    </button>
+                  ) : null}
+                </>
+              )}
+            </div>
           ) : null}
 
           {!loading && !error && filteredEligible.length > 0 ? (
@@ -262,6 +463,8 @@ export function ParticipantPicker({
                   highlighted={index === highlightIndex}
                   onSelect={() => selectParticipant(participant)}
                   onHover={() => setHighlightIndex(index)}
+                  assignmentStripState={getAssignmentStripState(participant.id)}
+                  onEnsureAssignments={ensureParticipantAssignments}
                 />
               ))}
             </ul>
@@ -360,6 +563,12 @@ function ParticipantCountTable({
   );
 }
 
+type AssignmentStripState = {
+  assignments: AssignmentHistoryItem[] | undefined;
+  loading: boolean;
+  error: string | null;
+};
+
 type EligibleOptionProps = {
   id: string;
   participant: EligibleParticipant;
@@ -367,6 +576,8 @@ type EligibleOptionProps = {
   highlighted: boolean;
   onSelect: () => void;
   onHover: () => void;
+  assignmentStripState: AssignmentStripState;
+  onEnsureAssignments: (participantId: string) => void;
 };
 
 function EligibleOption({
@@ -376,36 +587,53 @@ function EligibleOption({
   highlighted,
   onSelect,
   onHover,
+  assignmentStripState,
+  onEnsureAssignments,
 }: EligibleOptionProps) {
+  const [stripOpen, setStripOpen] = useState(false);
+
   return (
     <li
       id={id}
       role="option"
       aria-selected={highlighted}
-      className={`min-h-[44px] cursor-pointer px-[var(--space-3)] py-[var(--space-2)] transition-colors ${
+      className={`min-h-[44px] px-[var(--space-3)] py-[var(--space-2)] transition-colors ${
         highlighted
           ? "bg-[color-mix(in_srgb,var(--accent)_12%,var(--surface))]"
           : "hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))]"
       }`}
       onMouseEnter={onHover}
-      onMouseDown={(event) => event.preventDefault()}
-      onClick={onSelect}
     >
-      <div className="flex items-center justify-between gap-[var(--space-2)]">
-        <span className="text-[var(--text-base)] text-[var(--ink)]">
-          {participant.name}
-        </span>
-        <span className="shrink-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-[var(--space-2)] py-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
-          {privilegeLabel(participant.privilege)}
-        </span>
+      <div
+        className="cursor-pointer"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={onSelect}
+      >
+        <div className="flex items-center justify-between gap-[var(--space-2)]">
+          <span className="text-[var(--text-base)] text-[var(--ink)]">
+            {participant.name}
+          </span>
+          <span className="shrink-0 rounded-[var(--radius-sm)] border border-[var(--line)] px-[var(--space-2)] py-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
+            {privilegeLabel(participant.privilege)}
+          </span>
+        </div>
+        <div className="mt-[var(--space-2)] overflow-x-auto">
+          <ParticipantCountTable
+            sortCategory={sortCategory}
+            countsThisMonth={participant.countsThisMonth}
+            countsTotal={participant.countsTotal}
+          />
+        </div>
       </div>
-      <div className="mt-[var(--space-2)] overflow-x-auto">
-        <ParticipantCountTable
-          sortCategory={sortCategory}
-          countsThisMonth={participant.countsThisMonth}
-          countsTotal={participant.countsTotal}
-        />
-      </div>
+      <ParticipantAssignmentStrip
+        participantId={participant.id}
+        open={stripOpen}
+        onToggle={() => setStripOpen((prev) => !prev)}
+        assignments={assignmentStripState.assignments}
+        loading={assignmentStripState.loading}
+        error={assignmentStripState.error}
+        onEnsureLoaded={onEnsureAssignments}
+      />
     </li>
   );
 }

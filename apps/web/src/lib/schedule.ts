@@ -111,6 +111,13 @@ export function buildVisibleCountColumns(
   ];
 }
 
+export type LastAssignmentView = {
+  meetingDate: string;
+  role: AssignmentRole;
+  partTypeLabel: string;
+  partTopic: PartTopic;
+};
+
 export type EligibleParticipant = {
   id: string;
   name: string;
@@ -122,6 +129,7 @@ export type EligibleParticipant = {
   countsTotal: Partial<Record<AssignmentCountCategory, number>>;
   /** @deprecated use countsTotal[sortCategory] */
   counter: number;
+  lastAssignment: LastAssignmentView | null;
 };
 
 export type IneligibleVisible = {

@@ -128,6 +128,13 @@ type SlotWithContext = Awaited<
   ReturnType<ScheduleService['loadSlotContext']>
 >;
 
+export type LastAssignmentView = {
+  meetingDate: string;
+  role: AssignmentRole;
+  partTypeLabel: string;
+  partTopic: PartTopic;
+};
+
 type EligibleParticipantView = {
   id: string;
   name: string;
@@ -139,6 +146,7 @@ type EligibleParticipantView = {
   countsTotal: Partial<Record<AssignmentCountCategory, number>>;
   /** @deprecated use countsTotal[sortCategory] */
   counter: number;
+  lastAssignment: LastAssignmentView | null;
 };
 
 type IneligibleVisibleView = {
@@ -725,16 +733,16 @@ export class ScheduleService {
     });
 
     const participantIds = eligible.map((p) => p.id);
-    const countMaps = await this.buildParticipantCountMaps(
-      participantIds,
-      monthId,
-    );
-    const weekAssignmentCounts =
-      await this.countWeekAssignmentsForParticipants(
-        participantIds,
-        weekId,
-        slot.id,
-      );
+    const [countMaps, weekAssignmentCounts, lastAssignments] =
+      await Promise.all([
+        this.buildParticipantCountMaps(participantIds, monthId),
+        this.countWeekAssignmentsForParticipants(
+          participantIds,
+          weekId,
+          slot.id,
+        ),
+        this.batchLastAssignmentForParticipants(participantIds),
+      ]);
 
     const enriched: EligibleParticipantView[] = eligible.map((p) => {
       const counts = countMaps.get(p.id) ?? { month: {}, total: {} };
@@ -749,6 +757,7 @@ export class ScheduleService {
         countsThisMonth: counts.month,
         countsTotal: counts.total,
         counter: sortCategory ? (counts.total[sortCategory] ?? 0) : 0,
+        lastAssignment: lastAssignments.get(p.id) ?? null,
       };
     });
 
@@ -1182,10 +1191,69 @@ export class ScheduleService {
         countsThisMonth: {},
         countsTotal: {},
         counter: rules[counterKeyForRole(role as never)],
+        lastAssignment: null,
       });
     }
 
     return { eligible, eligibleRules, ineligibleVisible };
+  }
+
+  private async batchLastAssignmentForParticipants(
+    participantIds: string[],
+  ): Promise<Map<string, LastAssignmentView>> {
+    const result = new Map<string, LastAssignmentView>();
+    if (participantIds.length === 0) {
+      return result;
+    }
+
+    const winnerRows = await prisma.$queryRaw<
+      { id: string; participantId: string }[]
+    >`
+      WITH slots AS (
+        SELECT s.id, s."participantId", w."meetingDate"
+        FROM "AssignmentSlot" s
+        INNER JOIN "WeekPart" wp ON wp.id = s."weekPartId"
+        INNER JOIN "Week" w ON w.id = wp."weekId"
+        WHERE s."participantId" IN (${Prisma.join(participantIds)})
+      ),
+      winners AS (
+        SELECT DISTINCT ON (s."participantId") s.id, s."participantId"
+        FROM slots s
+        ORDER BY s."participantId", s."meetingDate" DESC
+      )
+      SELECT id, "participantId" FROM winners
+    `;
+
+    if (winnerRows.length === 0) {
+      return result;
+    }
+
+    const ids = winnerRows.map((r) => r.id);
+    const rows = await prisma.assignmentSlot.findMany({
+      where: { id: { in: ids } },
+      include: {
+        weekPart: {
+          include: {
+            partType: true,
+            week: true,
+          },
+        },
+      },
+    });
+
+    const rowById = new Map(rows.map((row) => [row.id, row]));
+    for (const winner of winnerRows) {
+      const row = rowById.get(winner.id);
+      if (!row) continue;
+      result.set(winner.participantId, {
+        meetingDate: formatDateOnly(row.weekPart.week.meetingDate),
+        role: row.role,
+        partTypeLabel: row.weekPart.partType.label,
+        partTopic: row.weekPart.topic,
+      });
+    }
+
+    return result;
   }
 
   private async buildParticipantCountMaps(
