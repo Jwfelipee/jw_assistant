@@ -108,6 +108,7 @@ export function ParticipantPicker({
   const [filters, setFilters] = useState<PickerFilters>(() =>
     getSlotFilters(filtersBySlotRef.current, slotId),
   );
+  const [filtersPanelOpen, setFiltersPanelOpen] = useState(false);
   const assignmentCacheRef = useRef(new Map<string, AssignmentHistoryItem[]>());
   const assignmentErrorRef = useRef(new Map<string, string>());
   const assignmentLoadingRef = useRef(new Set<string>());
@@ -177,6 +178,7 @@ export function ParticipantPicker({
     setIsOpen(false);
     setQuery("");
     setHighlightIndex(-1);
+    setFiltersPanelOpen(false);
     onOpenChange?.(false);
   }, [onOpenChange]);
 
@@ -337,87 +339,109 @@ export function ParticipantPicker({
 
       {isOpen ? (
         <div
-          id={listboxId}
-          role="listbox"
-          className="absolute z-50 mt-[var(--space-1)] max-h-[min(18rem,calc(100dvh-8rem))] w-full overflow-y-auto rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] shadow-[0_8px_24px_color-mix(in_srgb,var(--ink)_12%,transparent)]"
+          className="absolute z-50 mt-[var(--space-1)] flex max-h-[min(70dvh,calc(100dvh-6rem))] w-full flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface)] shadow-[0_8px_24px_color-mix(in_srgb,var(--ink)_12%,transparent)]"
         >
-          <div
-            className="sticky top-0 z-10 border-b border-[var(--line)] bg-[var(--surface)] p-[var(--space-2)]"
-            onMouseDown={(event) => event.preventDefault()}
-          >
-            <div className="grid grid-cols-1 gap-[var(--space-2)] sm:grid-cols-3">
-              <label className="flex min-w-0 flex-col gap-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
-                Sexo
-                <select
-                  className={filterSelectClass}
-                  value={filters.sex}
-                  aria-label="Filtrar por sexo"
-                  onChange={(event) =>
-                    persistFilters({
-                      ...filters,
-                      sex: event.target.value as PickerFilters["sex"],
-                    })
-                  }
+          <div className="shrink-0 border-b border-[var(--line)] bg-[var(--surface)] p-[var(--space-2)]">
+            <button
+              type="button"
+              className="flex min-h-[40px] w-full items-center justify-between gap-[var(--space-2)] rounded-[var(--radius-sm)] border border-[var(--line)] px-[var(--space-2)] text-left text-[var(--text-sm)] text-[var(--ink)] sm:hidden"
+              aria-expanded={filtersPanelOpen}
+              onClick={() => setFiltersPanelOpen((open) => !open)}
+            >
+              <span>
+                Filtros
+                {filtersActive ? (
+                  <span className="ml-[var(--space-1)] text-[var(--accent)]">
+                    (ativos)
+                  </span>
+                ) : null}
+              </span>
+              <span className="text-[var(--muted)]" aria-hidden="true">
+                {filtersPanelOpen ? "▴" : "▾"}
+              </span>
+            </button>
+            <div
+              className={`${filtersPanelOpen ? "mt-[var(--space-2)] block" : "hidden"} space-y-[var(--space-2)] sm:mt-0 sm:block`}
+            >
+              <div className="grid grid-cols-1 gap-[var(--space-2)] sm:grid-cols-3">
+                <label className="flex min-w-0 flex-col gap-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
+                  Sexo
+                  <select
+                    className={`${filterSelectClass} min-h-[40px] sm:min-h-[44px]`}
+                    value={filters.sex}
+                    aria-label="Filtrar por sexo"
+                    onChange={(event) =>
+                      persistFilters({
+                        ...filters,
+                        sex: event.target.value as PickerFilters["sex"],
+                      })
+                    }
+                  >
+                    <option value="">Todos</option>
+                    <option value={Sex.MALE}>Homens</option>
+                    <option value={Sex.FEMALE}>Mulheres</option>
+                  </select>
+                </label>
+                <label className="flex min-w-0 flex-col gap-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
+                  Privilégio
+                  <select
+                    className={`${filterSelectClass} min-h-[40px] sm:min-h-[44px]`}
+                    value={filters.privilege}
+                    aria-label="Filtrar por privilégio"
+                    onChange={(event) =>
+                      persistFilters({
+                        ...filters,
+                        privilege: event.target.value as PickerFilters["privilege"],
+                      })
+                    }
+                  >
+                    <option value="">Todos</option>
+                    {Object.values(Privilege).map((privilege) => (
+                      <option key={privilege} value={privilege}>
+                        {PRIVILEGE_LABELS[privilege]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex min-w-0 flex-col gap-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
+                  Última designação
+                  <select
+                    className={`${filterSelectClass} min-h-[40px] sm:min-h-[44px]`}
+                    value={filters.lastRole}
+                    aria-label="Filtrar por última designação"
+                    onChange={(event) =>
+                      persistFilters({
+                        ...filters,
+                        lastRole: event.target.value as PickerFilters["lastRole"],
+                      })
+                    }
+                  >
+                    <option value="">Qualquer</option>
+                    {Object.values(AssignmentRole).map((role) => (
+                      <option key={role} value={role}>
+                        {ROLE_LABELS[role]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {filtersActive ? (
+                <button
+                  type="button"
+                  className="min-h-[40px] w-full rounded-[var(--radius-sm)] border border-[var(--line)] px-[var(--space-2)] text-[var(--text-sm)] text-[var(--ink)] hover:bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface))] sm:min-h-[44px]"
+                  onClick={clearPickerFilters}
                 >
-                  <option value="">Todos</option>
-                  <option value={Sex.MALE}>Homens</option>
-                  <option value={Sex.FEMALE}>Mulheres</option>
-                </select>
-              </label>
-              <label className="flex min-w-0 flex-col gap-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
-                Privilégio
-                <select
-                  className={filterSelectClass}
-                  value={filters.privilege}
-                  aria-label="Filtrar por privilégio"
-                  onChange={(event) =>
-                    persistFilters({
-                      ...filters,
-                      privilege: event.target.value as PickerFilters["privilege"],
-                    })
-                  }
-                >
-                  <option value="">Todos</option>
-                  {Object.values(Privilege).map((privilege) => (
-                    <option key={privilege} value={privilege}>
-                      {PRIVILEGE_LABELS[privilege]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex min-w-0 flex-col gap-[var(--space-1)] text-[var(--text-xs)] text-[var(--muted)]">
-                Última designação
-                <select
-                  className={filterSelectClass}
-                  value={filters.lastRole}
-                  aria-label="Filtrar por última designação"
-                  onChange={(event) =>
-                    persistFilters({
-                      ...filters,
-                      lastRole: event.target.value as PickerFilters["lastRole"],
-                    })
-                  }
-                >
-                  <option value="">Qualquer</option>
-                  {Object.values(AssignmentRole).map((role) => (
-                    <option key={role} value={role}>
-                      {ROLE_LABELS[role]}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  Limpar filtros
+                </button>
+              ) : null}
             </div>
-            {filtersActive ? (
-              <button
-                type="button"
-                className="mt-[var(--space-2)] min-h-[44px] w-full rounded-[var(--radius-sm)] border border-[var(--line)] px-[var(--space-2)] text-[var(--text-sm)] text-[var(--ink)] hover:bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface))]"
-                onClick={clearPickerFilters}
-              >
-                Limpar filtros
-              </button>
-            ) : null}
           </div>
 
+          <div
+            id={listboxId}
+            role="listbox"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+          >
           {loading ? (
             <p className="px-[var(--space-3)] py-[var(--space-3)] text-[var(--text-sm)] text-[var(--muted)]">
               Carregando…
@@ -487,6 +511,7 @@ export function ParticipantPicker({
               </ul>
             </>
           ) : null}
+          </div>
         </div>
       ) : null}
     </div>
