@@ -45,5 +45,5 @@
 
 📄 [Detalhes](./tasks/task-05-picker-filters-smoke.md)
 
-- [ ] 5.1 Week view: filters + last-role + slot restore/clear
-- [ ] 5.2 Mobile-width: strip scroll and assign still works
+- [x] 5.1 Week view: filters + last-role + slot restore/clear
+- [x] 5.2 Mobile-width: strip scroll and assign still works
