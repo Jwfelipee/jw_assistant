@@ -186,6 +186,7 @@ describe('ScheduleService.getEligibleParticipants', () => {
     mockedPrisma.assignmentSlot.count.mockResolvedValue(0);
     mockedPrisma.assignmentSlot.findMany.mockResolvedValue([]);
     mockedPrisma.assignmentSlot.groupBy.mockResolvedValue([]);
+    mockedPrisma.$queryRaw.mockResolvedValue([]);
   });
 
   it('throws 404 when slot does not exist', async () => {
@@ -341,6 +342,7 @@ describe('ScheduleService.getEligibleParticipants', () => {
         countsThisMonth: { ministerio: 1 },
         countsTotal: { ministerio: 1 },
         counter: 1,
+        lastAssignment: null,
       },
       {
         id: 'p-z',
@@ -352,6 +354,7 @@ describe('ScheduleService.getEligibleParticipants', () => {
         countsThisMonth: { ministerio: 2 },
         countsTotal: { ministerio: 3 },
         counter: 3,
+        lastAssignment: null,
       },
     ]);
     expect(result.slotId).toBe(slotId);

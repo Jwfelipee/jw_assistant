@@ -14,9 +14,9 @@
 
 📄 [Detalhes](./tasks/task-01-last-assignment-on-eligible-api.md)
 
-- [ ] 1.1 Add `lastAssignment` to eligible participant view types (API + web)
-- [ ] 1.2 Batch-load global last assignment per eligible participant in `getEligibleParticipants`
-- [ ] 1.3 Expose fields in JSON response and update `EligibleParticipant` in `schedule.ts`
+- [x] 1.1 Add `lastAssignment` to eligible participant view types (API + web)
+- [x] 1.2 Batch-load global last assignment per eligible participant in `getEligibleParticipants`
+- [x] 1.3 Expose fields in JSON response and update `EligibleParticipant` in `schedule.ts`
 
 ## 2. Eligible last assignment tests
 
