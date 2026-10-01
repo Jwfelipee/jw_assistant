@@ -1,4 +1,4 @@
-import { AssignmentRole, PartTopic } from "@jw/shared";
+import { AssignmentRole, PartTopic, Sex } from "@jw/shared";
 
 export type SlotView = {
   id: string;
@@ -186,6 +186,8 @@ export type HistoryResult = {
   items: HistoryItem[];
 };
 
+export type StudyHistoryRole = "DIRIGENTE" | "LEITOR" | "BOTH";
+
 export type HistoryQuery = {
   q?: string;
   from?: string;
@@ -193,6 +195,10 @@ export type HistoryQuery = {
   participantId?: string;
   topic?: PartTopic;
   role?: AssignmentRole;
+  sex?: Sex;
+  partTypeId?: string;
+  studyRole?: StudyHistoryRole;
+  lastPerParticipant?: boolean;
   page?: number;
   limit?: number;
 };
@@ -437,6 +443,12 @@ export async function fetchAssignmentHistory(
   if (query.participantId) qs.set("participantId", query.participantId);
   if (query.topic) qs.set("topic", query.topic);
   if (query.role) qs.set("role", query.role);
+  if (query.sex) qs.set("sex", query.sex);
+  if (query.partTypeId) qs.set("partTypeId", query.partTypeId);
+  if (query.studyRole) qs.set("studyRole", query.studyRole);
+  if (query.lastPerParticipant === true) {
+    qs.set("lastPerParticipant", "true");
+  }
   if (query.page) qs.set("page", String(query.page));
   if (query.limit) qs.set("limit", String(query.limit));
   const suffix = qs.toString() ? `?${qs}` : "";

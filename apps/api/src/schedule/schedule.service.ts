@@ -51,7 +51,10 @@ import {
 } from './assign-rules';
 import type { AddWeekPartDto } from './dto/add-week-part.dto';
 import type { AssignSlotDto } from './dto/assign-slot.dto';
-import type { HistoryQueryDto } from './dto/history-query.dto';
+import {
+  StudyHistoryRole,
+  type HistoryQueryDto,
+} from './dto/history-query.dto';
 import type { MonthsQueryDto } from './dto/months-query.dto';
 import type { ReorderWeekPartsDto } from './dto/reorder-week-parts.dto';
 import type { UpdateWeekPartDto } from './dto/update-week-part.dto';
@@ -764,28 +767,33 @@ export class ScheduleService {
     };
   }
 
-  async history(query: HistoryQueryDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-    const skip = (page - 1) * limit;
+  private buildHistoryWhere(
+    query: HistoryQueryDto,
+    nameFilter: string | undefined,
+    from: Date | undefined,
+    to: Date | undefined,
+  ): Prisma.AssignmentSlotWhereInput {
+    const participantWhere: Prisma.ParticipantWhereInput = {};
+    if (nameFilter) {
+      participantWhere.name = {
+        contains: nameFilter,
+        mode: 'insensitive',
+      };
+    }
+    if (query.sex) {
+      participantWhere.sex = query.sex;
+    }
 
-    const nameFilter = query.q?.trim();
-    const from = query.from ? parseDateOnly(query.from) : undefined;
-    const to = query.to ? parseDateOnly(query.to) : undefined;
+    const roleFilter = this.resolveHistoryRoleFilter(query);
 
-    const where: Prisma.AssignmentSlotWhereInput = {
-      participantId: query.participantId
-        ? query.participantId
-        : { not: null },
-      ...(query.role ? { role: query.role } : {}),
-      ...(nameFilter
-        ? {
-            participant: {
-              name: { contains: nameFilter, mode: 'insensitive' as const },
-            },
-          }
+    return {
+      participantId: query.participantId ?? { not: null },
+      ...(roleFilter !== undefined ? { role: roleFilter } : {}),
+      ...(Object.keys(participantWhere).length > 0
+        ? { participant: participantWhere }
         : {}),
       weekPart: {
+        ...(query.partTypeId ? { partTypeId: query.partTypeId } : {}),
         ...(query.topic ? { topic: query.topic } : {}),
         week: {
           ...(from || to
@@ -799,24 +807,228 @@ export class ScheduleService {
         },
       },
     };
+  }
+
+  private resolveHistoryRoleFilter(
+    query: HistoryQueryDto,
+  ):
+    | AssignmentRole
+    | Prisma.EnumAssignmentRoleFilter
+    | undefined {
+    if (query.studyRole) {
+      switch (query.studyRole) {
+        case StudyHistoryRole.DIRIGENTE:
+          return AssignmentRole.DIRIGENTE;
+        case StudyHistoryRole.LEITOR:
+          return AssignmentRole.LEITOR;
+        case StudyHistoryRole.BOTH:
+          return {
+            in: [AssignmentRole.DIRIGENTE, AssignmentRole.LEITOR],
+          };
+      }
+    }
+    if (query.role) {
+      return query.role;
+    }
+    return undefined;
+  }
+
+  private buildHistorySqlFilter(
+    query: HistoryQueryDto,
+    nameFilter: string | undefined,
+    from: Date | undefined,
+    to: Date | undefined,
+  ): { joins: Prisma.Sql; where: Prisma.Sql } {
+    const conditions: Prisma.Sql[] = [
+      Prisma.sql`s."participantId" IS NOT NULL`,
+    ];
+
+    let joins = Prisma.empty;
+
+    if (query.participantId) {
+      conditions.push(
+        Prisma.sql`s."participantId" = ${query.participantId}`,
+      );
+    }
+
+    if (nameFilter || query.sex) {
+      joins = Prisma.sql`INNER JOIN "Participant" p ON p.id = s."participantId"`;
+      if (nameFilter) {
+        conditions.push(Prisma.sql`p.name ILIKE ${`%${nameFilter}%`}`);
+      }
+      if (query.sex) {
+        conditions.push(Prisma.sql`p.sex = ${query.sex}::"Sex"`);
+      }
+    }
+
+    if (query.partTypeId) {
+      conditions.push(Prisma.sql`wp."partTypeId" = ${query.partTypeId}`);
+    }
+    if (query.topic) {
+      conditions.push(Prisma.sql`wp.topic = ${query.topic}::"PartTopic"`);
+    }
+    if (from) {
+      conditions.push(Prisma.sql`w."meetingDate" >= ${from}`);
+    }
+    if (to) {
+      conditions.push(Prisma.sql`w."meetingDate" <= ${to}`);
+    }
+
+    const roleFilter = this.resolveHistoryRoleFilter(query);
+    if (roleFilter !== undefined) {
+      if (typeof roleFilter === 'string') {
+        conditions.push(
+          Prisma.sql`s.role = ${roleFilter}::"AssignmentRole"`,
+        );
+      } else if (roleFilter.in) {
+        conditions.push(
+          Prisma.sql`s.role IN (${Prisma.join(
+            roleFilter.in.map(
+              (r) => Prisma.sql`${r}::"AssignmentRole"`,
+            ),
+          )})`,
+        );
+      }
+    }
+
+    return {
+      joins,
+      where: Prisma.join(conditions, ' AND '),
+    };
+  }
+
+  private historyInclude() {
+    return {
+      participant: { select: { id: true, name: true } },
+      weekPart: {
+        include: {
+          partType: true,
+          week: {
+            include: {
+              month: true,
+            },
+          },
+        },
+      },
+    } satisfies Prisma.AssignmentSlotInclude;
+  }
+
+  private mapHistoryRows(
+    rows: Prisma.AssignmentSlotGetPayload<{
+      include: ReturnType<ScheduleService['historyInclude']>;
+    }>[],
+  ) {
+    return rows.map((row) => ({
+      id: row.id,
+      role: row.role,
+      participantId: row.participantId,
+      participantName: row.participant?.name ?? null,
+      partTitle: row.weekPart.title,
+      partTopic: row.weekPart.topic,
+      partTypeLabel: row.weekPart.partType.label,
+      meetingDate: formatDateOnly(row.weekPart.week.meetingDate),
+      weekStartDate: formatDateOnly(row.weekPart.week.weekStartDate),
+      yearMonth: formatYearMonth(
+        row.weekPart.week.month.year,
+        row.weekPart.week.month.month,
+      ),
+    }));
+  }
+
+  private async historyLastPerParticipant(
+    query: HistoryQueryDto,
+    nameFilter: string | undefined,
+    from: Date | undefined,
+    to: Date | undefined,
+    skip: number,
+    limit: number,
+  ) {
+    const { joins, where } = this.buildHistorySqlFilter(
+      query,
+      nameFilter,
+      from,
+      to,
+    );
+
+    const fromJoins = Prisma.sql`
+      FROM "AssignmentSlot" s
+      INNER JOIN "WeekPart" wp ON wp.id = s."weekPartId"
+      INNER JOIN "Week" w ON w.id = wp."weekId"
+      ${joins}
+      WHERE ${where}
+    `;
+
+    const [countRow, winnerRows] = await prisma.$transaction([
+      prisma.$queryRaw<{ count: number }[]>`
+        SELECT COUNT(DISTINCT s."participantId")::int AS count
+        ${fromJoins}
+      `,
+      prisma.$queryRaw<{ id: string }[]>`
+        WITH filtered AS (
+          SELECT s.id, s."participantId", w."meetingDate"
+          ${fromJoins}
+        ),
+        winners AS (
+          SELECT DISTINCT ON (f."participantId") f.id, f."meetingDate"
+          FROM filtered f
+          ORDER BY f."participantId", f."meetingDate" DESC
+        )
+        SELECT id FROM winners
+        ORDER BY "meetingDate" DESC
+        LIMIT ${limit} OFFSET ${skip}
+      `,
+    ]);
+
+    const total = countRow[0]?.count ?? 0;
+    const ids = winnerRows.map((r) => r.id);
+    if (ids.length === 0) {
+      return { total, rows: [] };
+    }
+
+    const rows = await prisma.assignmentSlot.findMany({
+      where: { id: { in: ids } },
+      include: this.historyInclude(),
+      orderBy: {
+        weekPart: { week: { meetingDate: 'desc' } },
+      },
+    });
+
+    return { total, rows };
+  }
+
+  async history(query: HistoryQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const nameFilter = query.q?.trim();
+    const from = query.from ? parseDateOnly(query.from) : undefined;
+    const to = query.to ? parseDateOnly(query.to) : undefined;
+
+    if (query.lastPerParticipant) {
+      const { total, rows } = await this.historyLastPerParticipant(
+        query,
+        nameFilter,
+        from,
+        to,
+        skip,
+        limit,
+      );
+      return {
+        total,
+        page,
+        limit,
+        items: this.mapHistoryRows(rows),
+      };
+    }
+
+    const where = this.buildHistoryWhere(query, nameFilter, from, to);
 
     const [total, rows] = await prisma.$transaction([
       prisma.assignmentSlot.count({ where }),
       prisma.assignmentSlot.findMany({
         where,
-        include: {
-          participant: { select: { id: true, name: true } },
-          weekPart: {
-            include: {
-              partType: true,
-              week: {
-                include: {
-                  month: true,
-                },
-              },
-            },
-          },
-        },
+        include: this.historyInclude(),
         orderBy: {
           weekPart: { week: { meetingDate: 'desc' } },
         },
@@ -829,21 +1041,7 @@ export class ScheduleService {
       total,
       page,
       limit,
-      items: rows.map((row) => ({
-        id: row.id,
-        role: row.role,
-        participantId: row.participantId,
-        participantName: row.participant?.name ?? null,
-        partTitle: row.weekPart.title,
-        partTopic: row.weekPart.topic,
-        partTypeLabel: row.weekPart.partType.label,
-        meetingDate: formatDateOnly(row.weekPart.week.meetingDate),
-        weekStartDate: formatDateOnly(row.weekPart.week.weekStartDate),
-        yearMonth: formatYearMonth(
-          row.weekPart.week.month.year,
-          row.weekPart.week.month.month,
-        ),
-      })),
+      items: this.mapHistoryRows(rows),
     };
   }
 

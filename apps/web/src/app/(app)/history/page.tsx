@@ -21,7 +21,7 @@ function HistoryPageContent() {
   const subtitle =
     activeView === "months"
       ? "Consulte meses anteriores e abra a programação para editar ou exportar PDF."
-      : "Busque por nome, período, tópico ou papel.";
+      : "Busque por nome, período, designação ou papel.";
 
   return (
     <main className="mx-auto flex min-h-0 w-full max-w-[var(--shell-max)] flex-col gap-[var(--space-6)] px-[var(--page-pad)] py-[var(--space-8)]">

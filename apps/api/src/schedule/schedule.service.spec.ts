@@ -11,6 +11,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { prisma } from '@jw/database';
 import { ScheduleService } from './schedule.service';
 import { hardRejectMessage } from './assign-rules';
+import { StudyHistoryRole } from './dto/history-query.dto';
 
 jest.mock('@jw/database', () => {
   const actual = jest.requireActual('@jw/database');
@@ -38,6 +39,7 @@ jest.mock('@jw/database', () => {
         findMany: jest.fn(),
       },
       $transaction: jest.fn(),
+      $queryRaw: jest.fn(),
     },
   };
 });
@@ -942,6 +944,354 @@ describe('ScheduleService.reorderWeekParts', () => {
     expect(mockedPrisma.weekPart.update).toHaveBeenCalledWith({
       where: { id: 'fsm-1' },
       data: { sortOrder: 20 },
+    });
+  });
+});
+
+describe('ScheduleService.history', () => {
+  const service = new ScheduleService();
+
+  const joiasPartType = {
+    id: 'pt-joias',
+    code: 'JOIAS_ESPIRITUAIS',
+    label: 'Joias espirituais',
+    topic: PartTopic.TREASURES,
+    allowedSexes: [Sex.MALE, Sex.FEMALE],
+    privileges: Object.values(Privilege),
+    roles: [AssignmentRole.TITULAR],
+    countsAsMinistryPractice: false,
+    slotMode: SlotMode.ONE,
+    isSystem: true,
+    deletable: false,
+    defaultSortOrder: 15,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const presidentePartType = {
+    ...joiasPartType,
+    id: 'pt-presidente',
+    code: 'PRESIDENTE',
+    label: 'Presidente',
+    defaultSortOrder: 5,
+  };
+
+  const estudoPartType = {
+    ...joiasPartType,
+    id: 'pt-estudo',
+    code: 'ESTUDO_BIBLICO',
+    label: 'Estudo bíblico',
+    topic: PartTopic.CHRISTIAN_LIFE,
+    roles: [AssignmentRole.DIRIGENTE, AssignmentRole.LEITOR],
+    defaultSortOrder: 90,
+  };
+
+  type HistorySlotRow = {
+    id: string;
+    role: AssignmentRole;
+    participantId: string;
+    participant: { id: string; name: string };
+    weekPart: {
+      id: string;
+      title: string;
+      topic: PartTopic;
+      partType: typeof joiasPartType;
+      week: {
+        id: string;
+        weekStartDate: Date;
+        meetingDate: Date;
+        month: { year: number; month: number };
+      };
+    };
+  };
+
+  function makeHistorySlot(params: {
+    id: string;
+    role: AssignmentRole;
+    participantId: string;
+    participantName: string;
+    partType: typeof joiasPartType;
+    meetingDate: Date;
+  }): HistorySlotRow {
+    const d = params.meetingDate;
+    return {
+      id: params.id,
+      role: params.role,
+      participantId: params.participantId,
+      participant: { id: params.participantId, name: params.participantName },
+      weekPart: {
+        id: `wp-${params.id}`,
+        title: params.partType.label,
+        topic: params.partType.topic,
+        partType: params.partType,
+        week: {
+          id: `week-${params.id}`,
+          weekStartDate: d,
+          meetingDate: d,
+          month: { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 },
+        },
+      },
+    };
+  }
+
+  function installFlatHistoryMocks(
+    rows: HistorySlotRow[],
+    total = rows.length,
+  ) {
+    let capturedWhere: unknown;
+    mockedPrisma.assignmentSlot.count.mockImplementation((args) => {
+      capturedWhere = args.where;
+      return Promise.resolve(total);
+    });
+    mockedPrisma.assignmentSlot.findMany.mockResolvedValue(rows);
+    mockedPrisma.$transaction.mockImplementation(async (ops) => {
+      if (Array.isArray(ops)) {
+        return Promise.all(ops);
+      }
+      return ops(mockedPrisma);
+    });
+    return {
+      getWhere: () => capturedWhere,
+    };
+  }
+
+  function installLastPerParticipantMocks(options: {
+    total: number;
+    winnerIds: string[];
+    rows: HistorySlotRow[];
+  }) {
+    mockedPrisma.$queryRaw
+      .mockResolvedValueOnce([{ count: options.total }])
+      .mockResolvedValueOnce(options.winnerIds.map((id) => ({ id })));
+    mockedPrisma.assignmentSlot.findMany.mockResolvedValue(options.rows);
+    mockedPrisma.$transaction.mockImplementation(async (ops) => {
+      if (Array.isArray(ops)) {
+        return Promise.all(ops);
+      }
+      return ops(mockedPrisma);
+    });
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('sex and partTypeId filters', () => {
+    it('returns only the sister Joias slot when sex=FEMALE', async () => {
+      const sisterSlot = makeHistorySlot({
+        id: 'slot-sister',
+        role: AssignmentRole.TITULAR,
+        participantId: 'p-sister',
+        participantName: 'Irmã Ana',
+        partType: joiasPartType,
+        meetingDate: new Date('2025-03-10'),
+      });
+      const { getWhere } = installFlatHistoryMocks([sisterSlot], 1);
+
+      const result = await service.history({
+        sex: Sex.FEMALE,
+        partTypeId: joiasPartType.id,
+      });
+
+      expect(getWhere()).toMatchObject({
+        participant: { sex: Sex.FEMALE },
+        weekPart: { partTypeId: joiasPartType.id },
+      });
+      expect(result.total).toBe(1);
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toMatchObject({
+        id: 'slot-sister',
+        participantName: 'Irmã Ana',
+      });
+    });
+
+    it('filters by partTypeId so Presidente query excludes Joias', async () => {
+      const presidenteSlot = makeHistorySlot({
+        id: 'slot-pres',
+        role: AssignmentRole.TITULAR,
+        participantId: 'p-elder',
+        participantName: 'Ancião',
+        partType: presidentePartType,
+        meetingDate: new Date('2025-04-01'),
+      });
+      const { getWhere } = installFlatHistoryMocks([presidenteSlot], 1);
+
+      const result = await service.history({
+        partTypeId: presidentePartType.id,
+      });
+
+      expect(getWhere()).toMatchObject({
+        weekPart: expect.objectContaining({
+          partTypeId: presidentePartType.id,
+        }),
+      });
+      expect(result.items[0].partTypeLabel).toBe('Presidente');
+    });
+  });
+
+  describe('studyRole filter', () => {
+    const dirigenteSlot = makeHistorySlot({
+      id: 'slot-dir',
+      role: AssignmentRole.DIRIGENTE,
+      participantId: 'p-dir',
+      participantName: 'Dirigente',
+      partType: estudoPartType,
+      meetingDate: new Date('2025-05-12'),
+    });
+    const leitorSlot = makeHistorySlot({
+      id: 'slot-leitor',
+      role: AssignmentRole.LEITOR,
+      participantId: 'p-leitor',
+      participantName: 'Leitor',
+      partType: estudoPartType,
+      meetingDate: new Date('2025-05-12'),
+    });
+
+    it('studyRole=DIRIGENTE returns one DIRIGENTE assignment', async () => {
+      const { getWhere } = installFlatHistoryMocks([dirigenteSlot], 1);
+
+      const result = await service.history({
+        partTypeId: estudoPartType.id,
+        studyRole: StudyHistoryRole.DIRIGENTE,
+      });
+
+      expect(getWhere()).toMatchObject({ role: AssignmentRole.DIRIGENTE });
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].role).toBe(AssignmentRole.DIRIGENTE);
+    });
+
+    it('studyRole=LEITOR returns one LEITOR assignment', async () => {
+      const { getWhere } = installFlatHistoryMocks([leitorSlot], 1);
+
+      const result = await service.history({
+        partTypeId: estudoPartType.id,
+        studyRole: StudyHistoryRole.LEITOR,
+      });
+
+      expect(getWhere()).toMatchObject({ role: AssignmentRole.LEITOR });
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].role).toBe(AssignmentRole.LEITOR);
+    });
+
+    it('studyRole=BOTH includes DIRIGENTE and LEITOR, not TITULAR', async () => {
+      const { getWhere } = installFlatHistoryMocks(
+        [dirigenteSlot, leitorSlot],
+        2,
+      );
+
+      const result = await service.history({
+        partTypeId: estudoPartType.id,
+        studyRole: StudyHistoryRole.BOTH,
+      });
+
+      expect(getWhere()).toMatchObject({
+        role: {
+          in: [AssignmentRole.DIRIGENTE, AssignmentRole.LEITOR],
+        },
+      });
+      expect(result.items).toHaveLength(2);
+      expect(result.items.map((i) => i.role).sort()).toEqual([
+        AssignmentRole.DIRIGENTE,
+        AssignmentRole.LEITOR,
+      ]);
+      expect(result.items.every((i) => i.role !== AssignmentRole.TITULAR)).toBe(
+        true,
+      );
+    });
+  });
+
+  describe('lastPerParticipant', () => {
+    const slotPJan = makeHistorySlot({
+      id: 'slot-p-jan',
+      role: AssignmentRole.TITULAR,
+      participantId: 'p-p',
+      participantName: 'Participante P',
+      partType: joiasPartType,
+      meetingDate: new Date('2025-01-01'),
+    });
+    const slotPJun = makeHistorySlot({
+      id: 'slot-p-jun',
+      role: AssignmentRole.TITULAR,
+      participantId: 'p-p',
+      participantName: 'Participante P',
+      partType: joiasPartType,
+      meetingDate: new Date('2025-06-01'),
+    });
+    const slotQ = makeHistorySlot({
+      id: 'slot-q',
+      role: AssignmentRole.TITULAR,
+      participantId: 'p-q',
+      participantName: 'Participante Q',
+      partType: joiasPartType,
+      meetingDate: new Date('2025-03-15'),
+    });
+
+    it('flat listing returns all assignment rows', async () => {
+      installFlatHistoryMocks([slotPJan, slotPJun, slotQ], 3);
+
+      const result = await service.history({
+        partTypeId: joiasPartType.id,
+      });
+
+      expect(result.total).toBe(3);
+      expect(result.items).toHaveLength(3);
+    });
+
+    it('with date range keeps latest Joias per participant in range', async () => {
+      installLastPerParticipantMocks({
+        total: 2,
+        winnerIds: ['slot-p-jun', 'slot-q'],
+        rows: [slotPJun, slotQ],
+      });
+
+      const result = await service.history({
+        partTypeId: joiasPartType.id,
+        lastPerParticipant: true,
+        from: '2025-01-01',
+        to: '2025-12-31',
+      });
+
+      expect(result.total).toBe(2);
+      expect(result.items).toHaveLength(2);
+      const pItem = result.items.find((i) => i.participantId === 'p-p');
+      expect(pItem?.meetingDate).toBe('2025-06-01');
+      expect(result.items[0].meetingDate).toBe('2025-06-01');
+    });
+
+    it('without dates uses global latest per participant', async () => {
+      installLastPerParticipantMocks({
+        total: 2,
+        winnerIds: ['slot-p-jun', 'slot-q'],
+        rows: [slotPJun, slotQ],
+      });
+
+      const result = await service.history({
+        partTypeId: joiasPartType.id,
+        lastPerParticipant: true,
+      });
+
+      expect(result.total).toBe(2);
+      const pItem = result.items.find((i) => i.participantId === 'p-p');
+      expect(pItem?.meetingDate).toBe('2025-06-01');
+    });
+
+    it('paginates aggregated participants with limit=1', async () => {
+      installLastPerParticipantMocks({
+        total: 2,
+        winnerIds: ['slot-p-jun'],
+        rows: [slotPJun],
+      });
+
+      const result = await service.history({
+        partTypeId: joiasPartType.id,
+        lastPerParticipant: true,
+        limit: 1,
+        page: 1,
+      });
+
+      expect(result.total).toBe(2);
+      expect(result.items).toHaveLength(1);
+      expect(result.limit).toBe(1);
     });
   });
 });
