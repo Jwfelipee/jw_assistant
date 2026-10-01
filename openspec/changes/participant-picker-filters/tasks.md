@@ -29,9 +29,9 @@
 
 📄 [Detalhes](./tasks/task-03-picker-filters-ui.md)
 
-- [ ] 3.1 Filter bar (sex, privilege, last role) inside dropdown
-- [ ] 3.2 Per-slot filter state with restore and clear
-- [ ] 3.3 Apply filters in eligible list pipeline with empty states
+- [x] 3.1 Filter bar (sex, privilege, last role) inside dropdown
+- [x] 3.2 Per-slot filter state with restore and clear
+- [x] 3.3 Apply filters in eligible list pipeline with empty states
 
 ## 4. Picker assignment strip UI
 

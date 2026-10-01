@@ -9,7 +9,7 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
-import { Privilege } from "@jw/shared";
+import { AssignmentRole, Privilege, Sex } from "@jw/shared";
 import {
   PRIVILEGE_LABELS,
   listParticipantAssignments,
@@ -20,6 +20,7 @@ import {
   ASSIGNMENT_COUNT_CATEGORY_LABELS,
   buildVisibleCountColumns,
   listEligibleParticipants,
+  ROLE_LABELS,
   type AssignmentCountCategory,
   type EligibleParticipant,
   type EligibleParticipantsResult,
@@ -95,6 +96,7 @@ export function ParticipantPicker({
 }: ParticipantPickerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const filtersBySlotRef = useRef<Map<string, PickerFilters>>(new Map());
   const listboxId = useId();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -103,12 +105,16 @@ export function ParticipantPicker({
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<EligibleParticipantsResult | null>(null);
   const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [filters, setFilters] = useState<PickerFilters>(() =>
+    getSlotFilters(filtersBySlotRef.current, slotId),
+  );
   const assignmentCacheRef = useRef(new Map<string, AssignmentHistoryItem[]>());
   const assignmentErrorRef = useRef(new Map<string, string>());
   const assignmentLoadingRef = useRef(new Set<string>());
   const [assignmentRevision, setAssignmentRevision] = useState(0);
 
   const isDisabled = disabled || busy;
+  const filtersActive = hasActivePickerFilters(filters);
 
   const ensureParticipantAssignments = useCallback(
     async (participantId: string) => {
@@ -155,8 +161,15 @@ export function ParticipantPicker({
 
   const filteredEligible = useMemo(() => {
     if (!data) return [];
-    return data.eligible.filter((p) => matchesQuery(p.name, query));
-  }, [data, query]);
+    return data.eligible
+      .filter((p) => !filters.sex || p.sex === filters.sex)
+      .filter((p) => !filters.privilege || p.privilege === filters.privilege)
+      .filter((p) => {
+        if (!filters.lastRole) return true;
+        return p.lastAssignment?.role === filters.lastRole;
+      })
+      .filter((p) => matchesQuery(p.name, query));
+  }, [data, filters, query]);
 
   const ineligibleVisible = data?.ineligibleVisible ?? [];
 

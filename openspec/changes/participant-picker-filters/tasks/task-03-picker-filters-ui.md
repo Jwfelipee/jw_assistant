@@ -38,8 +38,8 @@ Estilo compacto, mobile-friendly.
 
 ### Critérios de aceite
 
-- [ ] Filtros visíveis só quando dropdown aberto
-- [ ] Não dispara assign ao interagir com selects
+- [x] Filtros visíveis só quando dropdown aberto
+- [x] Não dispara assign ao interagir com selects
 
 ---
 
@@ -57,7 +57,7 @@ Trocar de slot na week page e voltar ao slot anterior restaura filtros salvos.
 
 ### Critérios de aceite
 
-- [ ] Cenários da spec “reset when changing slot” e “restore same slot”
+- [x] Cenários da spec “reset when changing slot” e “restore same slot”
 
 ---
 
@@ -79,8 +79,8 @@ Empty state: “Nenhum participante com esses filtros” + hint para limpar.
 
 ### Critérios de aceite
 
-- [ ] Busca por nome combina com AND nos filtros
-- [ ] `ineligibleVisible` não é filtrado por sexo/privilégio extras
+- [x] Busca por nome combina com AND nos filtros
+- [x] `ineligibleVisible` não é filtrado por sexo/privilégio extras
 
 ### Não fazer
 
