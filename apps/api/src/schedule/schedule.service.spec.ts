@@ -387,6 +387,77 @@ describe('ScheduleService.getEligibleParticipants', () => {
       ministerio: 1,
     });
   });
+
+  it('sets lastAssignment from the participant most recent global slot (2.1)', async () => {
+    mockSlot(fsmPartType);
+    mockedPrisma.participant.findMany.mockResolvedValue([elder]);
+
+    const olderDate = new Date('2026-01-15');
+    const newerDate = new Date('2026-06-20');
+
+    mockedPrisma.$queryRaw.mockResolvedValue([
+      { id: 'slot-recent', participantId: 'p-elder' },
+    ]);
+
+    const recentRow = {
+      id: 'slot-recent',
+      role: AssignmentRole.AJUDANTE,
+      participantId: 'p-elder',
+      participant: { sex: Sex.MALE },
+      weekPart: {
+        topic: PartTopic.MINISTRY,
+        partType: {
+          code: 'FSM_INICIANDO',
+          topic: PartTopic.MINISTRY,
+          label: 'Leitura recente',
+        },
+        week: { meetingDate: newerDate, monthId: 'month-1' },
+      },
+    };
+    const oldRow = {
+      id: 'slot-old',
+      role: AssignmentRole.TITULAR,
+      participantId: 'p-elder',
+      participant: { sex: Sex.MALE },
+      weekPart: {
+        topic: PartTopic.TREASURES,
+        partType: {
+          code: 'TESOUROS',
+          topic: PartTopic.TREASURES,
+          label: 'Tesouros antigo',
+        },
+        week: { meetingDate: olderDate, monthId: 'month-0' },
+      },
+    };
+
+    mockedPrisma.assignmentSlot.findMany.mockImplementation(async (args) => {
+      const where = args?.where as { id?: { in?: string[] } } | undefined;
+      if (where?.id?.in) {
+        return [recentRow];
+      }
+      return [oldRow, recentRow];
+    });
+
+    const result = await service.getEligibleParticipants(slotId);
+
+    expect(result.eligible).toHaveLength(1);
+    expect(result.eligible[0].lastAssignment).toEqual({
+      meetingDate: '2026-06-20',
+      role: AssignmentRole.AJUDANTE,
+      partTypeLabel: 'Leitura recente',
+      partTopic: PartTopic.MINISTRY,
+    });
+  });
+
+  it('sets lastAssignment to null when participant has no assignment history (2.2)', async () => {
+    mockSlot(fsmPartType);
+    mockedPrisma.participant.findMany.mockResolvedValue([elder]);
+
+    const result = await service.getEligibleParticipants(slotId);
+
+    expect(result.eligible).toHaveLength(1);
+    expect(result.eligible[0].lastAssignment).toBeNull();
+  });
 });
 
 describe('ScheduleService.updateWeekPartTitle', () => {

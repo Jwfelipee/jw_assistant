@@ -22,8 +22,8 @@
 
 📄 [Detalhes](./tasks/task-02-eligible-last-assignment-tests.md)
 
-- [ ] 2.1 Test participant with history receives correct `lastAssignment`
-- [ ] 2.2 Test never-assigned participant has `lastAssignment: null`
+- [x] 2.1 Test participant with history receives correct `lastAssignment`
+- [x] 2.2 Test never-assigned participant has `lastAssignment: null`
 
 ## 3. Picker filters UI
 
