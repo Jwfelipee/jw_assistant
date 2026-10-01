@@ -37,9 +37,9 @@
 
 📄 [Detalhes](./tasks/task-04-picker-assignment-strip-ui.md)
 
-- [ ] 4.1 `ParticipantAssignmentStrip` with fixed height and internal scroll
-- [ ] 4.2 Lazy load assignments; stopPropagation on strip controls
-- [ ] 4.3 Integrate strip into `EligibleOption` without breaking assign-on-click
+- [x] 4.1 `ParticipantAssignmentStrip` with fixed height and internal scroll
+- [x] 4.2 Lazy load assignments; stopPropagation on strip controls
+- [x] 4.3 Integrate strip into `EligibleOption` without breaking assign-on-click
 
 ## 5. Picker filters smoke
 
