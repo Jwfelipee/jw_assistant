@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LoginForm } from "./login-form";
+import { LoginPublicQuickLinks } from "./login-public-quick-links";
 
 export const metadata: Metadata = {
   title: "Entrar",
@@ -30,6 +31,7 @@ export default function LoginPage() {
         </header>
 
         <LoginForm />
+        <LoginPublicQuickLinks />
       </div>
     </main>
   );

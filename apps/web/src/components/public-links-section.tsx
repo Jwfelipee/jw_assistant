@@ -1,46 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  PUBLIC_SCHEDULE_LINKS,
+  type PublicLinkSettingsKey,
+} from "@/lib/public-schedule-links";
 import type { CongregationSettings } from "@/lib/settings";
 import { btnOutline, sectionCardClass } from "@/lib/ui";
 
-type PublicLinkKey =
-  | "publicLinkCurrentWeekEnabled"
-  | "publicLinkNextWeekEnabled"
-  | "publicLinkCurrentMonthEnabled"
-  | "publicLinkNextMonthEnabled";
-
-const PUBLIC_LINKS: {
-  key: PublicLinkKey;
-  label: string;
-  path: string;
-  description: string;
-}[] = [
-  {
-    key: "publicLinkCurrentWeekEnabled",
-    label: "Esta semana",
-    path: "/esta-semana",
-    description: "Designações da semana atual",
-  },
-  {
-    key: "publicLinkNextWeekEnabled",
-    label: "Próxima semana",
-    path: "/proxima-semana",
-    description: "Designações da semana seguinte",
-  },
-  {
-    key: "publicLinkCurrentMonthEnabled",
-    label: "Este mês",
-    path: "/este-mes",
-    description: "Programação do mês atual",
-  },
-  {
-    key: "publicLinkNextMonthEnabled",
-    label: "Próximo mês",
-    path: "/proximo-mes",
-    description: "Programação do mês seguinte",
-  },
-];
+type PublicLinkKey = PublicLinkSettingsKey;
 
 type Props = {
   settings: CongregationSettings;
@@ -127,7 +95,7 @@ export function PublicLinksSection({ settings, onUpdate }: Props) {
       ) : null}
 
       <ul className="flex flex-col gap-[var(--space-4)]">
-        {PUBLIC_LINKS.map((link) => {
+        {PUBLIC_SCHEDULE_LINKS.map((link) => {
           const enabled = settings[link.key];
           const url = `${origin}${link.path}`;
           const isPending = pendingKey === link.key;
