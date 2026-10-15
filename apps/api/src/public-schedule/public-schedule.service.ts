@@ -68,6 +68,8 @@ const TOPIC_LABELS: Record<SharedPartTopic, string> = {
 type WeekWithParts = {
   weekStartDate: Date;
   meetingDate: Date;
+  skippedAt?: Date | null;
+  skipReason?: string | null;
   parts: Array<
     WeekPart & {
       partType: PartType;
@@ -183,6 +185,8 @@ export class PublicScheduleService {
     weeks: Array<{
       weekStartDate: string;
       meetingDate: string;
+      skipped?: boolean;
+      skipReason?: string | null;
       parts: Array<{
         partTypeLabel: string;
         title: string;
@@ -206,6 +210,8 @@ export class PublicScheduleService {
       weeks: weeks.map((week) => ({
         meetingDate: week.meetingDate,
         weekStartDate: week.weekStartDate,
+        skipped: week.skipped ?? false,
+        skipReason: week.skipReason ?? null,
         parts: week.parts
           .slice()
           .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -218,6 +224,8 @@ export class PublicScheduleService {
     return {
       meetingDate: formatDateOnly(week.meetingDate),
       weekStartDate: formatDateOnly(week.weekStartDate),
+      skipped: week.skippedAt != null,
+      skipReason: week.skipReason ?? null,
       parts: week.parts.map((part) => this.toPublicPartView(part)),
     };
   }

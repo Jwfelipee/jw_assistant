@@ -123,6 +123,11 @@ export default function ScheduleMonthPage() {
                 >
                   <span className="font-medium">
                     Semana de {formatDateBr(week.weekStartDate)}
+                    {week.skipped ? (
+                      <span className="ml-2 rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[var(--text-xs)] font-normal text-[var(--muted)]">
+                        Zerada
+                      </span>
+                    ) : null}
                   </span>
                   <span className="text-[var(--text-sm)] text-[var(--muted)]">
                     Reunião {formatDateBr(week.meetingDate)}

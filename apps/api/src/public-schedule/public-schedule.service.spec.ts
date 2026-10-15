@@ -295,6 +295,8 @@ describe('PublicScheduleService', () => {
         ],
       } as never);
 
+      expect(view.skipped).toBe(false);
+      expect(view.skipReason).toBeNull();
       expect(view.parts[0].slots[0]).toEqual({
         role: AssignmentRole.TITULAR,
         roleLabel: 'Titular',

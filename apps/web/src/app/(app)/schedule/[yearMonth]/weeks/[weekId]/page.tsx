@@ -18,6 +18,8 @@ import {
   formatYearMonthLabel,
   removeWeekPart,
   reorderWeekParts,
+  restoreWeek,
+  skipWeek,
   suggestForPart,
   unassignSlot,
   updatePartTitle,
@@ -81,6 +83,12 @@ export default function WeekSchedulePage({ params }: PageProps) {
     PartTopic.MINISTRY | PartTopic.CHRISTIAN_LIFE | null
   >(null);
   const [addPending, setAddPending] = useState(false);
+  const [skipModalOpen, setSkipModalOpen] = useState(false);
+  const [skipReason, setSkipReason] = useState("");
+  const [skipPending, setSkipPending] = useState(false);
+  const [restorePending, setRestorePending] = useState(false);
+
+  const weekSkipped = week?.skipped ?? false;
 
   const load = useCallback(async () => {
     setError(null);
@@ -347,6 +355,67 @@ export default function WeekSchedulePage({ params }: PageProps) {
       .map((p) => p.id);
   }
 
+  async function onConfirmSkipWeek() {
+    if (!week) return;
+    const reason = skipReason.trim();
+    if (!reason) {
+      setError("Informe o motivo da semana zerada.");
+      return;
+    }
+    setSkipPending(true);
+    setError(null);
+    try {
+      const result = await skipWeek(week.id, reason);
+      setWeek(result.week);
+      setMonth((prev) =>
+        prev
+          ? {
+              ...prev,
+              weeks: prev.weeks.map((w) =>
+                w.id === result.week.id ? result.week : w,
+              ),
+            }
+          : prev,
+      );
+      setSkipModalOpen(false);
+      setSkipReason("");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Não foi possível zerar a semana.",
+      );
+    } finally {
+      setSkipPending(false);
+    }
+  }
+
+  async function onRestoreWeek() {
+    if (!week) return;
+    setRestorePending(true);
+    setError(null);
+    try {
+      const result = await restoreWeek(week.id);
+      setWeek(result.week);
+      setMonth((prev) =>
+        prev
+          ? {
+              ...prev,
+              weeks: prev.weeks.map((w) =>
+                w.id === result.week.id ? result.week : w,
+              ),
+            }
+          : prev,
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível reativar a semana.",
+      );
+    } finally {
+      setRestorePending(false);
+    }
+  }
+
   async function onReorderTopicParts(
     topic: PartTopic.MINISTRY | PartTopic.CHRISTIAN_LIFE,
     orderedTopicIds: string[],
@@ -400,6 +469,19 @@ export default function WeekSchedulePage({ params }: PageProps) {
   }
 
   function renderPartBody(part: WeekPartView) {
+    if (weekSkipped) {
+      return (
+        <div>
+          <p className="font-medium text-[var(--ink)]">{part.partTypeLabel}</p>
+          {part.title && part.title !== part.partTypeLabel ? (
+            <p className="mt-[var(--space-1)] text-[var(--text-sm)] text-[var(--muted)]">
+              Tema: {part.title}
+            </p>
+          ) : null}
+        </div>
+      );
+    }
+
     return (
       <>
         <div className="flex items-start justify-between gap-[var(--space-3)]">
@@ -633,7 +715,45 @@ export default function WeekSchedulePage({ params }: PageProps) {
             Semana a partir de {formatDateBr(week.weekStartDate)}
           </p>
         ) : null}
+        {week && !week.skipped ? (
+          <div className="mt-[var(--space-4)]">
+            <button
+              type="button"
+              className={btnDangerOutline}
+              onClick={() => {
+                setSkipReason("");
+                setSkipModalOpen(true);
+              }}
+            >
+              Zerar semana
+            </button>
+          </div>
+        ) : null}
       </header>
+
+      {week?.skipped ? (
+        <div
+          className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-muted)] p-[var(--space-4)]"
+          role="status"
+        >
+          <p className="font-medium text-[var(--ink)]">
+            Semana zerada (não contabilizada)
+          </p>
+          <p className="mt-[var(--space-2)] text-[var(--text-sm)] text-[var(--muted)]">
+            {week.skipReason}
+          </p>
+          <div className="mt-[var(--space-4)]">
+            <button
+              type="button"
+              className={btnOutline}
+              disabled={restorePending}
+              onClick={() => void onRestoreWeek()}
+            >
+              {restorePending ? "Reativando…" : "Reativar semana"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {error ? (
         <p role="alert" className="text-[var(--text-sm)] text-[var(--danger)]">
@@ -660,8 +780,9 @@ export default function WeekSchedulePage({ params }: PageProps) {
             >
               {TOPIC_LABELS[group.topic]}
             </h2>
-            {group.topic === PartTopic.MINISTRY ||
-            group.topic === PartTopic.CHRISTIAN_LIFE ? (
+            {!weekSkipped &&
+            (group.topic === PartTopic.MINISTRY ||
+              group.topic === PartTopic.CHRISTIAN_LIFE) ? (
               <button
                 type="button"
                 className={btnSecondary}
@@ -677,7 +798,13 @@ export default function WeekSchedulePage({ params }: PageProps) {
               </button>
             ) : null}
           </div>
-          {group.topic === PartTopic.MINISTRY ? (
+          {weekSkipped ? (
+            <ul className="mt-[var(--space-4)] flex flex-col gap-[var(--space-5)]">
+              {group.parts
+                .sort((a, b) => a.sortOrder - b.sortOrder)
+                .map((part) => renderStaticPart(part))}
+            </ul>
+          ) : group.topic === PartTopic.MINISTRY ? (
             <SortableWeekParts
               parts={group.parts.sort((a, b) => a.sortOrder - b.sortOrder)}
               onReorder={(orderedIds) =>
@@ -746,6 +873,64 @@ export default function WeekSchedulePage({ params }: PageProps) {
           }}
           onConfirm={onConfirmAddPart}
         />
+      ) : null}
+
+      {skipModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-[var(--page-pad)] sm:items-center">
+          <button
+            type="button"
+            aria-label="Fechar"
+            className="modal-backdrop absolute inset-0 bg-[color-mix(in_srgb,var(--ink)_40%,transparent)]"
+            onClick={() => {
+              if (!skipPending) setSkipModalOpen(false);
+            }}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="skip-week-title"
+            className="modal-panel relative z-10 w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)] p-[var(--space-5)] shadow-[var(--shadow-md)]"
+          >
+            <h2
+              id="skip-week-title"
+              className="font-heading text-[var(--text-lg)]"
+            >
+              Zerar semana
+            </h2>
+            <p className="mt-[var(--space-2)] text-[var(--text-sm)] text-[var(--muted)]">
+              A semana deixará de ser contabilizada no mês e todas as designações
+              serão removidas. Informe o motivo (ex.: assembleia, congresso).
+            </p>
+            <label className="mt-[var(--space-4)] block text-label">
+              Motivo
+              <textarea
+                className={`${fieldClass} mt-[var(--space-1)] min-h-[5rem] resize-y`}
+                value={skipReason}
+                maxLength={500}
+                onChange={(e) => setSkipReason(e.target.value)}
+                autoFocus
+              />
+            </label>
+            <div className={`${btnRowClass} mt-[var(--space-4)]`}>
+              <button
+                type="button"
+                className={btnDangerOutline}
+                disabled={skipPending}
+                onClick={() => void onConfirmSkipWeek()}
+              >
+                {skipPending ? "Zerando…" : "Confirmar"}
+              </button>
+              <button
+                type="button"
+                className={btnOutline}
+                disabled={skipPending}
+                onClick={() => setSkipModalOpen(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </main>
   );

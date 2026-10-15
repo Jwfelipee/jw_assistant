@@ -42,6 +42,8 @@ export class S140PdfService {
         weeks: month.weeks.map((week) => ({
           meetingDate: week.meetingDate,
           weekStartDate: week.weekStartDate,
+          skipped: week.skipped,
+          skipReason: week.skipReason,
           parts: week.parts.map((part) => ({
             partTypeCode: part.partTypeCode,
             partTypeLabel: part.partTypeLabel,

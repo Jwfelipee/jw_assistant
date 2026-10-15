@@ -199,12 +199,16 @@ model Week {
   weekStartDate DateTime @db.Date
   /// Congregation meeting weekday within this week.
   meetingDate   DateTime @db.Date
+  /// When set, the week is skipped (zerada) and does not count toward schedule completion or participant counters.
+  skippedAt     DateTime?
+  skipReason    String?  @db.VarChar(500)
   month         Month    @relation(fields: [monthId], references: [id], onDelete: Cascade)
   parts         WeekPart[]
 
   @@unique([monthId, weekStartDate])
   @@index([meetingDate])
   @@index([weekStartDate])
+  @@index([skippedAt])
 }
 
 model WeekPart {

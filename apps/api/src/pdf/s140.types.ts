@@ -17,6 +17,8 @@ export type S140PartInput = {
 export type S140WeekInput = {
   meetingDate: string;
   weekStartDate: string;
+  skipped?: boolean;
+  skipReason?: string | null;
   parts: S140PartInput[];
 };
 
@@ -36,6 +38,8 @@ export type S140PartLine = {
 
 export type S140WeekView = {
   meetingDateShort: string;
+  skipped: boolean;
+  skipReason: string | null;
   president: string;
   openingPrayer: string;
   closingPrayer: string;

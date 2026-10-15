@@ -25,6 +25,8 @@ export type WeekView = {
   id: string;
   weekStartDate: string;
   meetingDate: string;
+  skipped: boolean;
+  skipReason: string | null;
   parts: WeekPartView[];
 };
 
@@ -425,6 +427,31 @@ export async function updatePartTitle(
     title: string;
     partTypeLabel: string;
   }>;
+}
+
+export async function skipWeek(
+  weekId: string,
+  reason: string,
+): Promise<{ week: WeekView; yearMonth: string }> {
+  const res = await fetch(`/api/schedule/weeks/${weekId}/skip`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json() as Promise<{ week: WeekView; yearMonth: string }>;
+}
+
+export async function restoreWeek(
+  weekId: string,
+): Promise<{ week: WeekView; yearMonth: string }> {
+  const res = await fetch(`/api/schedule/weeks/${weekId}/skip`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await parseError(res));
+  return res.json() as Promise<{ week: WeekView; yearMonth: string }>;
 }
 
 export async function reorderWeekParts(

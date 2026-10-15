@@ -85,6 +85,15 @@ function WeekPrintBlock({
         </div>
       </div>
 
+      {week.skipped ? (
+        <div className="mt-6 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+          <p className="font-medium">Semana zerada (não realizada)</p>
+          <p className="mt-2 text-[var(--text-sm)] text-[var(--muted)]">
+            {week.skipReason}
+          </p>
+        </div>
+      ) : (
+        <>
       <TabularRow
         left={
           <span>
@@ -149,6 +158,8 @@ function WeekPrintBlock({
         }
         showTime={false}
       />
+        </>
+      )}
     </section>
   );
 }
