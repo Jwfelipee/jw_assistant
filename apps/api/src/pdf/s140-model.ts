@@ -162,6 +162,26 @@ export function buildS140DocumentData(
       return a.weekStartDate.localeCompare(b.weekStartDate);
     })
     .map((week) => {
+      if (week.skipped) {
+        return {
+          meetingDateShort: formatMeetingDateShort(week.meetingDate),
+          skipped: true,
+          skipReason: week.skipReason?.trim() || 'Semana não realizada',
+          president: '',
+          openingPrayer: '',
+          closingPrayer: '',
+          openingSong: '',
+          closingSong: '',
+          openingComments: '',
+          closingComments: '',
+          treasures: [],
+          ministry: [],
+          christianLife: [],
+          study: null,
+          nvcSong: '',
+        };
+      }
+
       const parts = [...week.parts].sort((a, b) => a.sortOrder - b.sortOrder);
       const studyPart = parts.find((p) => isStudyPartType(p.partTypeCode));
       const treasureParts = parts.filter((p) => p.topic === PartTopic.TREASURES);
@@ -187,6 +207,8 @@ export function buildS140DocumentData(
 
       return {
         meetingDateShort: formatMeetingDateShort(week.meetingDate),
+        skipped: false,
+        skipReason: null,
         president: pickTitularName(parts, 'PRESIDENTE'),
         openingPrayer: pickTitularName(parts, 'ORACAO_INICIAL'),
         closingPrayer: pickTitularName(parts, 'ORACAO_FINAL'),

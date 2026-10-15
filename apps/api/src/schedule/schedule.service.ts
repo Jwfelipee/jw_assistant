@@ -86,6 +86,8 @@ type WeekView = {
   id: string;
   weekStartDate: string;
   meetingDate: string;
+  skipped: boolean;
+  skipReason: string | null;
   parts: WeekPartView[];
 };
 
@@ -218,6 +220,93 @@ export class ScheduleService {
     return this.getMonth(yearMonth);
   }
 
+  async skipWeek(
+    weekId: string,
+    dto: { reason: string },
+  ): Promise<{ week: WeekView; yearMonth: string }> {
+    const reason = dto.reason.trim();
+    if (!reason) {
+      throw new BadRequestException('Informe o motivo da semana zerada.');
+    }
+
+    const week = await prisma.week.findUnique({
+      where: { id: weekId },
+      include: {
+        month: true,
+        parts: {
+          include: {
+            partType: true,
+            slots: true,
+          },
+        },
+      },
+    });
+    if (!week) {
+      throw new NotFoundException('Semana não encontrada');
+    }
+    if (week.skippedAt) {
+      throw new BadRequestException('Esta semana já está zerada.');
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const part of week.parts) {
+        for (const slot of part.slots) {
+          if (!slot.participantId) continue;
+          await this.decrementCounters(
+            tx,
+            slot.participantId,
+            part.partType,
+            slot.role,
+          );
+          await tx.assignmentSlot.update({
+            where: { id: slot.id },
+            data: { participantId: null },
+          });
+        }
+      }
+      await tx.week.update({
+        where: { id: weekId },
+        data: { skippedAt: new Date(), skipReason: reason.slice(0, 500) },
+      });
+    });
+
+    const yearMonth = formatYearMonth(week.month.year, week.month.month);
+    const month = await this.getMonth(yearMonth);
+    const updated = month.weeks.find((w) => w.id === weekId);
+    if (!updated) {
+      throw new NotFoundException('Semana não encontrada após zerar');
+    }
+    return { week: updated, yearMonth };
+  }
+
+  async restoreWeek(
+    weekId: string,
+  ): Promise<{ week: WeekView; yearMonth: string }> {
+    const week = await prisma.week.findUnique({
+      where: { id: weekId },
+      include: { month: true },
+    });
+    if (!week) {
+      throw new NotFoundException('Semana não encontrada');
+    }
+    if (!week.skippedAt) {
+      throw new BadRequestException('Esta semana não está zerada.');
+    }
+
+    await prisma.week.update({
+      where: { id: weekId },
+      data: { skippedAt: null, skipReason: null },
+    });
+
+    const yearMonth = formatYearMonth(week.month.year, week.month.month);
+    const month = await this.getMonth(yearMonth);
+    const updated = month.weeks.find((w) => w.id === weekId);
+    if (!updated) {
+      throw new NotFoundException('Semana não encontrada após reativar');
+    }
+    return { week: updated, yearMonth };
+  }
+
   async ensureHorizon(now: Date = new Date()): Promise<EnsureHorizonResult> {
     const start = currentYearMonth(now);
     const end = addMonths(start, 6);
@@ -338,6 +427,7 @@ export class ScheduleService {
     if (!week) {
       throw new NotFoundException('Semana não encontrada');
     }
+    this.assertWeekNotSkipped(week);
 
     const partType = await prisma.partType.findUnique({
       where: { id: dto.partTypeId },
@@ -393,11 +483,13 @@ export class ScheduleService {
       include: {
         partType: true,
         slots: true,
+        week: true,
       },
     });
     if (!part) {
       throw new NotFoundException('Parte não encontrada');
     }
+    this.assertWeekNotSkipped(part.week);
 
     if (isStudyPartType(part.partType.code)) {
       throw new BadRequestException(
@@ -442,6 +534,7 @@ export class ScheduleService {
     if (!week) {
       throw new NotFoundException('Semana não encontrada');
     }
+    this.assertWeekNotSkipped(week);
 
     const reorderable = week.parts.filter(
       (p) =>
@@ -517,11 +610,12 @@ export class ScheduleService {
   async updateWeekPartTitle(partId: string, dto: UpdateWeekPartDto) {
     const part = await prisma.weekPart.findUnique({
       where: { id: partId },
-      include: { partType: true },
+      include: { partType: true, week: true },
     });
     if (!part) {
       throw new NotFoundException('Parte não encontrada');
     }
+    this.assertWeekNotSkipped(part.week);
 
     const title = dto.title.trim().slice(0, 300);
     if (!title) {
@@ -543,6 +637,7 @@ export class ScheduleService {
 
   async assignSlot(slotId: string, dto: AssignSlotDto) {
     const slot = await this.loadSlotContext(slotId);
+    this.assertWeekNotSkipped(slot.weekPart.week);
     const participant = await prisma.participant.findUnique({
       where: { id: dto.participantId },
       include: { absences: true },
@@ -629,6 +724,7 @@ export class ScheduleService {
 
   async unassignSlot(slotId: string) {
     const slot = await this.loadSlotContext(slotId);
+    this.assertWeekNotSkipped(slot.weekPart.week);
     if (!slot.participantId) {
       return { ok: true, slot: this.toSlotView(slot) };
     }
@@ -666,6 +762,7 @@ export class ScheduleService {
     if (!part) {
       throw new NotFoundException('Parte não encontrada');
     }
+    this.assertWeekNotSkipped(part.week);
 
     if (!part.partType.roles.includes(role)) {
       throw new BadRequestException('Papel inválido para esta parte');
@@ -719,6 +816,7 @@ export class ScheduleService {
 
   async getEligibleParticipants(slotId: string) {
     const slot = await this.loadSlotContext(slotId);
+    this.assertWeekNotSkipped(slot.weekPart.week);
     const { eligible, ineligibleVisible } =
       await this.buildParticipantEligibilityForSlot(slot);
 
@@ -1116,6 +1214,14 @@ export class ScheduleService {
 
   // ─── private helpers ─────────────────────────────────────────────
 
+  private assertWeekNotSkipped(week: { skippedAt: Date | null }): void {
+    if (week.skippedAt) {
+      throw new BadRequestException(
+        'Esta semana está zerada. Reative a semana para editar designações.',
+      );
+    }
+  }
+
   private async buildParticipantEligibilityForSlot(
     slot: SlotWithContext,
   ): Promise<{
@@ -1285,7 +1391,10 @@ export class ScheduleService {
     }
 
     const slots = await prisma.assignmentSlot.findMany({
-      where: { participantId: { in: participantIds } },
+      where: {
+        participantId: { in: participantIds },
+        weekPart: { week: { skippedAt: null } },
+      },
       select: {
         participantId: true,
         role: true,
@@ -1447,7 +1556,7 @@ export class ScheduleService {
       where: {
         participantId: input.participantId,
         id: { not: input.excludingSlotId },
-        weekPart: { week: { monthId: input.monthId } },
+        weekPart: { week: { monthId: input.monthId, skippedAt: null } },
       },
     });
 
@@ -1630,6 +1739,7 @@ export class ScheduleService {
     let open = 0;
     let total = 0;
     for (const week of month.weeks) {
+      if (week.skippedAt) continue;
       for (const part of week.parts) {
         for (const slot of part.slots) {
           total += 1;
@@ -1773,6 +1883,8 @@ export class ScheduleService {
       id: string;
       weekStartDate: Date;
       meetingDate: Date;
+      skippedAt: Date | null;
+      skipReason: string | null;
       parts: Array<
         WeekPart & {
           partType: PartType;
@@ -1793,13 +1905,16 @@ export class ScheduleService {
       id: week.id,
       weekStartDate: formatDateOnly(week.weekStartDate),
       meetingDate: formatDateOnly(week.meetingDate),
+      skipped: week.skippedAt != null,
+      skipReason: week.skipReason,
       parts: week.parts.map((p) => this.toPartView(p)),
     }));
 
     let open = 0;
     let total = 0;
-    for (const week of weeks) {
-      for (const part of week.parts) {
+    for (const rawWeek of month.weeks) {
+      if (rawWeek.skippedAt) continue;
+      for (const part of rawWeek.parts) {
         for (const slot of part.slots) {
           total += 1;
           if (!slot.participantId) open += 1;

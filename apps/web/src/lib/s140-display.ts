@@ -42,6 +42,8 @@ export type S140PartLine = {
 
 export type S140PublicWeek = {
   meetingDateShort: string;
+  skipped: boolean;
+  skipReason: string | null;
   president: string;
   openingPrayer: string;
   closingPrayer: string;
@@ -162,6 +164,26 @@ function pickTitularName(parts: PublicPartView[], label: string): string {
 }
 
 export function buildPublicS140Week(week: PublicWeekView): S140PublicWeek {
+  if (week.skipped) {
+    return {
+      meetingDateShort: formatMeetingDateShort(week.meetingDate),
+      skipped: true,
+      skipReason: week.skipReason?.trim() || "Semana não realizada",
+      president: "",
+      openingPrayer: "",
+      closingPrayer: "",
+      openingSong: "",
+      closingSong: "",
+      openingComments: "",
+      closingComments: "",
+      treasures: [],
+      ministry: [],
+      christianLife: [],
+      study: null,
+      nvcSong: "",
+    };
+  }
+
   const parts = [...week.parts];
   const studyPart = parts.find(isStudyPart);
   const treasureParts = parts.filter((part) => part.topic === PartTopic.TREASURES);
@@ -187,6 +209,8 @@ export function buildPublicS140Week(week: PublicWeekView): S140PublicWeek {
 
   return {
     meetingDateShort: formatMeetingDateShort(week.meetingDate),
+    skipped: false,
+    skipReason: null,
     president: pickTitularName(parts, "Presidente"),
     openingPrayer: pickTitularName(parts, "Oração inicial"),
     closingPrayer: pickTitularName(parts, "Oração final"),

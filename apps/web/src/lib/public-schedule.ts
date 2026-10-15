@@ -23,6 +23,8 @@ export type PublicPartView = {
 export type PublicWeekView = {
   meetingDate: string;
   weekStartDate: string;
+  skipped: boolean;
+  skipReason: string | null;
   parts: PublicPartView[];
 };
 

@@ -489,6 +489,7 @@ describe('ScheduleService.updateWeekPartTitle', () => {
     sortOrder: 10,
     topic: PartTopic.MINISTRY,
     partType,
+    week: { skippedAt: null },
   };
 
   beforeEach(() => {
@@ -749,6 +750,45 @@ describe('ScheduleService.getMonthStatus', () => {
       openSlots: 0,
       totalSlots: 2,
       weekCount: 1,
+    });
+  });
+
+  it('excludes skipped weeks from completion counts', async () => {
+    mockedPrisma.month.findUnique.mockResolvedValue({
+      id: 'month-1',
+      year: 2026,
+      month: 9,
+      bimesterId: 'bim-1',
+      weeks: [
+        {
+          id: 'week-skipped',
+          skippedAt: new Date('2026-09-01'),
+          parts: [
+            {
+              slots: [{ participantId: null }, { participantId: null }],
+            },
+          ],
+        },
+        {
+          id: 'week-active',
+          skippedAt: null,
+          parts: [
+            {
+              slots: [{ participantId: 'p-1' }],
+            },
+          ],
+        },
+      ],
+    });
+
+    const status = await service.getMonthStatus({ year: 2026, month: 9 });
+
+    expect(status).toEqual({
+      exists: true,
+      complete: true,
+      openSlots: 0,
+      totalSlots: 1,
+      weekCount: 2,
     });
   });
 

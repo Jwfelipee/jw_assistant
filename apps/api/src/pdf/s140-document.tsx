@@ -164,6 +164,24 @@ function PartRows({ parts }: { parts: S140PartLine[] }) {
 }
 
 function WeekPage({ week, congregationName }: { week: S140WeekView; congregationName: string }) {
+  if (week.skipped) {
+    return (
+      <Page size="A4" style={styles.page} wrap={false}>
+        <Text style={styles.congregation}>{congregationName}</Text>
+        <Text style={styles.subtitle}>Programação da reunião do meio de semana</Text>
+        <View style={styles.weekHeader}>
+          <Text style={styles.weekDate}>
+            {week.meetingDateShort} | LEITURA SEMANAL DA BÍBLIA
+          </Text>
+        </View>
+        <Text style={[styles.sectionHeader, { marginTop: 24 }]}>
+          Semana zerada (não realizada)
+        </Text>
+        <Text style={{ fontSize: 11, marginTop: 8 }}>{week.skipReason}</Text>
+      </Page>
+    );
+  }
+
   return (
     <Page size="A4" style={styles.page} wrap={false}>
       <Text style={styles.congregation}>{congregationName}</Text>
